@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+*.env
+
+# Node / Puppeteer
+node_modules/
+package-lock.json
+
+# Local dev tools
+screenshot.mjs
+screenshot-compare.mjs
+serve.mjs
+package.json
+temporary screenshots/
+
+# Logs
+*.log
+ngrok.log
+server.log
+
+# Personal files
+WhatsApp Image*
+*.jpeg
+*.jpg
+
+# Streamlit version (not deployed)
+agent/scanner.py
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

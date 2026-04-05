@@ -1,0 +1,256 @@
+"""
+INCI name to toxicant category mapping.
+
+Matching is substring-based (both directions), so stems like "paraben" catch
+all variants (methylparaben, ethylparaben, etc.) without enumerating each one.
+Short synonyms (<=4 chars) use word-boundary regex in analyze_ingredients.py
+to avoid false matches inside longer words.
+"""
+
+TOXICANT_INCI_MAP = {
+
+    "parabens": [
+        "paraben",
+        "methylparaben",
+        "ethylparaben",
+        "propylparaben",
+        "butylparaben",
+        "isobutylparaben",
+        "isopropylparaben",
+        "benzylparaben",
+        "sodium methylparaben",
+        "sodium ethylparaben",
+        "sodium propylparaben",
+        "sodium butylparaben",
+        "potassium methylparaben",
+        "potassium butylparaben",
+    ],
+
+    "phthalates": [
+        "phthalate",
+        "diethyl phthalate",
+        "dibutyl phthalate",
+        "dimethyl phthalate",
+        "dioctyl phthalate",
+        "di(2-ethylhexyl) phthalate",
+        "dehp",
+        "dep",
+        "dbp",
+        "dmp",
+        "dop",
+        "diisononyl phthalate",
+        "diisodecyl phthalate",
+    ],
+
+    "pfas": [
+        "perfluoro",
+        "polyfluoro",
+        "ptfe",
+        "polytetrafluoroethylene",
+        "teflon",
+        "fluoropolymer",
+        "fluorinated",
+        "pfoa",
+        "pfos",
+        "pfas",
+        "fluoroethylene",
+        "fluoroalkyl",
+    ],
+
+    "benzophenones": [
+        "benzophenone",
+        "oxybenzone",
+        "sulisobenzone",
+        "dioxybenzone",
+        "avobenzone",
+        "2-hydroxy-4-methoxybenzophenone",
+        "2,4-dihydroxybenzophenone",
+    ],
+
+    "siloxanes": [
+        "siloxane",
+        "dimethicone",
+        "cyclomethicone",
+        "cyclopentasiloxane",
+        "cyclohexasiloxane",
+        "cyclotetrasiloxane",
+        "cyclopentadimethylsiloxane",
+        "phenyl trimethicone",
+        "trimethylsiloxysilicate",
+        "amodimethicone",
+    ],
+
+    "fragrance": [
+        "fragrance",
+        "parfum",
+        "aroma",
+        "linalool",
+        "limonene",
+        "eugenol",
+        "citral",
+        "geraniol",
+        "coumarin",
+        "cinnamal",
+        "cinnamyl alcohol",
+        "isoeugenol",
+        "anise alcohol",
+        "benzyl alcohol",
+        "benzyl benzoate",
+        "benzyl cinnamate",
+        "benzyl salicylate",
+        "farnesol",
+        "hydroxycitronellal",
+        "alpha-isomethyl ionone",
+        "amyl cinnamal",
+        "amylcinnamyl alcohol",
+        "butylphenyl methylpropional",
+        "hexyl cinnamal",
+        "lilial",
+        "lyral",
+        "musk",
+        "tonalide",
+        "galaxolide",
+        "iso e super",
+    ],
+
+    "toluene": [
+        "toluene",
+        "methylbenzene",
+        "toluol",
+    ],
+
+    "formaldehyde_releasers": [
+        "formaldehyde",
+        "dmdm hydantoin",
+        "imidazolidinyl urea",
+        "diazolidinyl urea",
+        "quaternium-15",
+        "bronopol",
+        "2-bromo-2-nitropropane-1,3-diol",
+        "sodium hydroxymethylglycinate",
+        "5-bromo-5-nitro-1,3-dioxane",
+        "polyoxymethylene urea",
+        "benzylhemiformal",
+        "methenamine",
+        "glyoxal",
+    ],
+
+    "heavy_metals": [
+        "lead acetate",
+        "lead sulfate",
+        "mercuric",
+        "mercurous",
+        "ammoniated mercury",
+        "thimerosal",
+        "thiomersal",
+        "calomel",
+        "chromium",
+        "cadmium",
+        "arsenic",
+        "aluminium chlorohydrate",
+        "aluminum chlorohydrate",
+        "aluminum zirconium",
+        "nickel sulfate",
+    ],
+
+    "hydroquinone": [
+        "hydroquinone",
+        "1,4-benzenediol",
+        "benzene-1,4-diol",
+        "p-dihydroxybenzene",
+        "quinol",
+    ],
+
+    "ethanolamines": [
+        "ethanolamine",
+        "diethanolamine",
+        "triethanolamine",
+        "monoethanolamine",
+        "cocamide dea",
+        "cocamide mea",
+        "lauramide dea",
+        "myristamide dea",
+        "oleamide dea",
+        "stearamide mea",
+        "linoleamide dea",
+    ],
+
+    "bha_bht": [
+        "butylated hydroxyanisole",
+        "butylated hydroxytoluene",
+        "dibutylhydroxytoluene",
+        "2,6-di-tert-butyl-p-cresol",
+        "2-tert-butyl-4-methoxyphenol",
+        "3-tert-butyl-4-methoxyphenol",
+    ],
+
+    "coal_tar": [
+        "coal tar",
+        "p-phenylenediamine",
+        "phenylenediamine",
+        "resorcinol",
+        "aminophenol",
+        "4-aminophenol",
+        "2-aminophenol",
+        "4-amino-2-hydroxytoluene",
+        "toluene-2,5-diamine",
+        "n-phenyl-p-phenylenediamine",
+        "4-chlororesorcinol",
+        "naphthalene",
+        "anthracene",
+        "creosote",
+        "fd&c",
+        "d&c",
+        "ext. d&c",
+    ],
+
+    "triclosan": [
+        "triclosan",
+        "5-chloro-2-(2,4-dichlorophenoxy)phenol",
+        "triclocarban",
+        "3,4,4'-trichlorocarbanilide",
+        "cloflucarban",
+        "hexachlorophene",
+    ],
+
+    # 1,4-dioxane is a manufacturing contaminant — never listed on labels.
+    # We flag its ethoxylated precursor chemicals instead.
+    "dioxane": [
+        "sodium laureth sulfate",
+        "laureth",
+        "oleth",
+        "ceteth",
+        "steareth",
+        "beheneth",
+        "myreth",
+        "polysorbate",
+        "sorbeth",
+        "glycereth",
+        "polyethylene glycol",
+        "ethoxylated",
+        "oxynol",
+        "nonoxynol",
+    ],
+}
+
+# Short synonyms (<=4 chars) that need word-boundary matching to avoid false positives.
+# Handled in analyze_ingredients.py with re.search(r'\b{syn}\b', ingredient).
+SHORT_SYNONYMS = {"bha", "bht", "dea", "mea", "tea", "dep", "dbp", "dmp", "dop"}
+
+TOXICANT_DISPLAY = {
+    "parabens":               "Parabens",
+    "phthalates":             "Phthalates",
+    "siloxanes":              "Siloxanes",
+    "pfas":                   "PFAS (Per- and Polyfluoroalkyl Substances)",
+    "benzophenones":          "Benzophenones (UV Filters)",
+    "fragrance":              "Fragrance / Parfum",
+    "formaldehyde_releasers": "Formaldehyde Releasers",
+    "heavy_metals":           "Heavy Metals",
+    "triclosan":              "Triclosan / Antimicrobials",
+    "toluene":                "Toluene",
+    "ethanolamines":          "Ethanolamines (DEA / TEA / MEA)",
+    "dioxane":                "1,4-Dioxane (Contaminant Precursors)",
+    "bha_bht":                "BHA / BHT (Antioxidant Preservatives)",
+    "hydroquinone":           "Hydroquinone",
+    "coal_tar":               "Coal Tar Dyes",
+}
