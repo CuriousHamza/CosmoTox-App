@@ -316,23 +316,14 @@
     .product-info h2 { font-size: 1rem; font-weight: 700; color: var(--text); }
     .product-info p  { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
 
-    /* ── Verdict badge ── */
-    .verdict-badge {
-      margin: 16px 18px;
-      padding: 16px 18px;
-      border-radius: 12px;
-      border-left: 4px solid;
+    /* ── Scan summary (replaces verdict badge) ── */
+    .scan-summary {
+      padding: 12px 18px 4px;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.5;
     }
-    .verdict-top { display: flex; align-items: center; gap: 10px; }
-    .status-dot {
-      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
-    }
-    .status-dot.red   { background: var(--red);   box-shadow: 0 0 8px rgba(248,113,113,0.6); }
-    .status-dot.amber { background: var(--amber); box-shadow: 0 0 8px rgba(251,191,36,0.6); }
-    .status-dot.green { background: var(--green); box-shadow: 0 0 8px rgba(52,211,153,0.6); }
-    .verdict-label { font-size: 1.1rem; font-weight: 800; letter-spacing: 0.3px; }
-    .verdict-stats { font-size: 0.77rem; margin-top: 5px; opacity: 0.75; }
-    .verdict-msg   { font-size: 0.82rem; margin-top: 8px; line-height: 1.55; opacity: 0.9; }
+    .scan-summary strong { color: var(--text); font-weight: 700; }
 
     /* ── Toxicant cards ── */
     .toxicants-section { padding: 0 18px 24px; }
@@ -602,7 +593,7 @@
     /* ── Compare results screen ── */
     #screen-compare-results { overflow-y: auto; }
 
-    /* ── Spectrum recommendation card ── */
+    /* ── Spectrum recommendation card (vertical) ── */
     .spectrum-card {
       margin: 16px;
       border-radius: 14px;
@@ -610,91 +601,105 @@
       position: relative;
       border: 1px solid rgba(255,255,255,0.07);
     }
+    /* Left accent strip — vertical green→red */
     .spectrum-card::before {
       content: '';
       position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-      background: linear-gradient(to right, #34d399, #fbbf24, #f87171);
+      top: 0; left: 0; bottom: 0; right: auto;
+      width: 3px; height: auto;
+      background: linear-gradient(to bottom, #34d399, #fbbf24, #f87171);
       z-index: 2;
     }
-    .spectrum-axis {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 14px 0;
-      position: relative;
-      z-index: 1;
-    }
-    .spectrum-axis-label {
+    /* Axis labels as flow rows above/below the product cols */
+    .spectrum-axis-header,
+    .spectrum-axis-footer {
       font-size: 0.6rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.7px;
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 3px;
       opacity: 0.65;
+      padding: 7px 16px 3px 20px;
+      pointer-events: none;
     }
-    .spectrum-axis-label.safe  { color: var(--green); }
-    .spectrum-axis-label.risk  { color: var(--red); }
+    .spectrum-axis-header { color: var(--green); padding-bottom: 2px; }
+    .spectrum-axis-footer { color: var(--red);   padding-top: 2px; padding-bottom: 6px; }
+    /* Vertical stack of rows */
     .spectrum-cols {
       display: flex;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-    }
-    .spectrum-cols::-webkit-scrollbar { display: none; }
-    .spectrum-col {
-      flex: 1;
-      min-width: 80px;
-      padding: 12px 8px 16px;
-      display: flex;
       flex-direction: column;
+      overflow-x: visible;
+    }
+    .spectrum-col {
+      display: flex;
+      flex-direction: row;
       align-items: center;
-      gap: 7px;
-      border-right: 1px solid rgba(255,255,255,0.05);
+      justify-content: flex-start;
+      gap: 12px;
+      padding: 13px 16px 13px 20px;
       position: relative;
       transition: background 0.2s;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
     }
-    .spectrum-col:last-child { border-right: none; }
+    .spectrum-col:last-child { border-bottom: none; }
     .spectrum-col:hover { background: rgba(255,255,255,0.03); }
     .spectrum-rank {
-      font-size: 0.68rem;
+      font-size: 0.75rem;
       font-weight: 800;
       display: flex;
       align-items: center;
       gap: 3px;
       letter-spacing: 0.2px;
     }
-    .spectrum-crown {
-      display: flex;
-      align-items: center;
-      margin-bottom: -2px;
-    }
     .spectrum-name {
-      font-size: 0.82rem;
+      font-size: 0.88rem;
       font-weight: 700;
       color: var(--text);
-      text-align: center;
+      text-align: left;
       line-height: 1.3;
       word-break: break-word;
+      flex: 1;
+    }
+    .spectrum-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+      flex-shrink: 0;
     }
     .spectrum-verdict {
-      font-size: 0.6rem;
+      font-size: 0.58rem;
       font-weight: 800;
       letter-spacing: 0.5px;
       border-radius: 5px;
       padding: 3px 8px;
-      text-align: center;
       white-space: nowrap;
       text-transform: uppercase;
     }
     .spectrum-score {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.62rem;
+      font-size: 0.6rem;
       opacity: 0.45;
       color: var(--text-muted);
+    }
+    /* Rank + crown wrapper */
+    .spectrum-rank-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+      min-width: 28px;
+      gap: 2px;
+    }
+    /* Gold crown badge above rank number */
+    .spectrum-winner-crown {
+      color: #fbbf24;
+      display: flex;
+      align-items: center;
+      opacity: 0.95;
+      filter: drop-shadow(0 0 5px rgba(251,191,36,0.6));
     }
     .spectrum-reason {
       padding: 10px 16px 14px;
@@ -1083,6 +1088,58 @@
       color: var(--green);
       opacity: 0.85;
     }
+
+    /* ── Watchlist section headers ── */
+    .watchlist-section-header {
+      padding: 14px 18px 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .watchlist-section-label {
+      font-size: 0.68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--accent);
+      opacity: 0.85;
+    }
+
+    /* ── Watchlist search bar ── */
+    .watchlist-search-wrap {
+      position: relative;
+      margin: 4px 18px 8px;
+    }
+    .watchlist-search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+    .watchlist-search {
+      width: 100%;
+      box-sizing: border-box;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      padding: 8px 14px 8px 32px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.82rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .watchlist-search::placeholder { color: var(--text-muted); opacity: 0.6; }
+    .watchlist-search:focus { border-color: var(--accent); }
+
+    /* ── Organ hit chip on results ── */
+    .watchlist-hit.organ-hit {
+      background: rgba(45,212,191,0.08);
+      border-color: rgba(45,212,191,0.25);
+      color: var(--accent);
+    }
   </style>
 </head>
 <body>
@@ -1104,9 +1161,10 @@
       <div class="tagline">Evidence-based cosmetic ingredient analysis</div>
     </div>
     <button onclick="showScreen('watchlist')" aria-label="My ingredient watchlist"
-            style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px;display:flex;align-items:center;touch-action:manipulation;border-radius:6px;transition:color 0.15s;"
-            onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'"
-            onfocus="this.style.color='var(--accent)'" onblur="this.style.color='var(--text-muted)'">
+            style="background:rgba(45,212,191,0.13);border:1.5px solid rgba(45,212,191,0.35);color:var(--accent);cursor:pointer;padding:6px 8px;display:flex;align-items:center;touch-action:manipulation;border-radius:8px;transition:background 0.15s,border-color 0.15s;"
+            onmouseover="this.style.background='rgba(45,212,191,0.22)';this.style.borderColor='rgba(45,212,191,0.6)'"
+            onmouseout="this.style.background='rgba(45,212,191,0.13)';this.style.borderColor='rgba(45,212,191,0.35)'"
+            onfocus="this.style.background='rgba(45,212,191,0.22)'" onblur="this.style.background='rgba(45,212,191,0.13)'">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <line x1="4" y1="6" x2="20" y2="6"/>
         <line x1="8" y1="12" x2="20" y2="12"/>
@@ -1340,9 +1398,35 @@
       </div>
     </div>
     <p class="watchlist-note">
-      Tap a category to add it to your watchlist. After every scan, you'll see a personal alert if any of these are detected — useful for known sensitivities or preferences.
+      Tap a category to add it to your watchlist. After every scan, you'll see a personal alert if any are detected — useful for known sensitivities or preferences.
     </p>
+
+    <div class="watchlist-section-header">
+      <span class="watchlist-section-label">By Toxicant</span>
+    </div>
+    <div class="watchlist-search-wrap">
+      <svg class="watchlist-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input class="watchlist-search" id="watchlist-toxicant-search" type="text" placeholder="Filter toxicants…"
+             oninput="renderWatchlistScreen()" aria-label="Filter toxicant categories" />
+    </div>
     <div class="watchlist-grid" id="watchlist-grid"></div>
+
+    <div class="watchlist-section-header" style="margin-top:8px;">
+      <span class="watchlist-section-label">By Body / Organ</span>
+    </div>
+    <p class="watchlist-note" style="padding-top:0;">
+      Flag any toxicant linked to these body systems.
+    </p>
+    <div class="watchlist-search-wrap">
+      <svg class="watchlist-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input class="watchlist-search" id="watchlist-organ-search" type="text" placeholder="Filter organs…"
+             oninput="renderWatchlistScreen()" aria-label="Filter organ categories" />
+    </div>
+    <div class="watchlist-grid" id="watchlist-organ-grid"></div>
   </div>
 
 </div>
@@ -1677,32 +1761,6 @@
   }
 
   // ── Render results ───────────────────────────────────────────────────────────
-  const VERDICT = {
-    concerning: {
-      dotCls: 'red',
-      label:  'CONCERNING',
-      color:  'var(--red)',
-      bg:     'rgba(248,113,113,0.07)',
-      border: 'var(--red)',
-      msg:    'This product contains ingredients linked to significant health concerns in peer-reviewed literature.'
-    },
-    caution: {
-      dotCls: 'amber',
-      label:  'USE CAUTION',
-      color:  'var(--amber)',
-      bg:     'rgba(251,191,36,0.07)',
-      border: 'var(--amber)',
-      msg:    'This product contains some ingredients that appear in toxicant research, but evidence is limited.'
-    },
-    clean: {
-      dotCls: 'green',
-      label:  'NO CONCERNS FOUND',
-      color:  'var(--green)',
-      bg:     'rgba(52,211,153,0.07)',
-      border: 'var(--green)',
-      msg:    'No ingredients matched our database of 15 toxicant categories.'
-    },
-  };
 
   // Store current result for share/copy
   let _currentResultLabel = '';
@@ -1734,18 +1792,32 @@
       </button>
     `;
 
-    // ── Watchlist strip (Feature 5)
+    // ── Watchlist strip (Feature 5 + Organ watchlist)
     const detected = analysis && analysis.detected_toxicants || [];
     const wlStrip  = document.getElementById('result-watchlist-strip');
-    if (watchlist.size > 0) {
-      const hits = detected.filter(t => watchlist.has(t.toxicant_key));
-      if (hits.length > 0) {
+    const toxHits  = detected.filter(t => watchlist.has(t.toxicant_key));
+    const organHits = organWatchlist.size > 0
+      ? detected.filter(t =>
+          [...organWatchlist].some(ok => organMatchesToxicant(t.top_organs, ok))
+        )
+      : [];
+    // Deduplicate organ hits that are already in toxHits
+    const organOnlyHits = organHits.filter(t => !watchlist.has(t.toxicant_key));
+    const hasAnyWatchlist = watchlist.size > 0 || organWatchlist.size > 0;
+    const totalHits = toxHits.length + organOnlyHits.length;
+
+    if (hasAnyWatchlist) {
+      if (totalHits > 0) {
+        const toxChips = toxHits.map(t =>
+          `<span class="watchlist-hit">${escHtml(t.display_name)}</span>`
+        ).join('');
+        const organChips = organOnlyHits.map(t =>
+          `<span class="watchlist-hit organ-hit">${escHtml(t.display_name)}</span>`
+        ).join('');
         wlStrip.innerHTML = `
           <div class="watchlist-strip wl-warn">
             <span class="watchlist-strip-label">Your Watchlist</span>
-            <div class="watchlist-hits">
-              ${hits.map(t => `<span class="watchlist-hit">${escHtml(t.display_name)}</span>`).join('')}
-            </div>
+            <div class="watchlist-hits">${toxChips}${organChips}</div>
           </div>`;
       } else {
         wlStrip.innerHTML = `
@@ -1758,23 +1830,16 @@
       wlStrip.innerHTML = '';
     }
 
-    const v   = analysis ? analysis.verdict : 'clean';
-    const cfg = VERDICT[v] || VERDICT.clean;
     const n   = analysis ? analysis.total_toxicants_detected : 0;
     const m   = analysis ? analysis.total_relevant_papers    : 0;
 
-    document.getElementById('result-verdict').innerHTML = `
-      <div class="verdict-badge" style="background:${cfg.bg}; border-color:${cfg.border};">
-        <div class="verdict-top">
-          <span class="status-dot ${cfg.dotCls}"></span>
-          <span class="verdict-label" style="color:${cfg.color};">${cfg.label}</span>
-        </div>
-        <div class="verdict-stats" style="color:${cfg.color};">
-          ${n} toxicant categor${n===1?'y':'ies'} detected &nbsp;·&nbsp; ${m} relevant research papers
-        </div>
-        <div class="verdict-msg" style="color:${cfg.color};">${cfg.msg}</div>
-      </div>
-    `;
+    if (n > 0) {
+      document.getElementById('result-verdict').innerHTML = `
+        <p class="scan-summary">Found <strong>${n} flagged ingredient categor${n===1?'y':'ies'}</strong> — backed by ${m} relevant research paper${m===1?'':'s'}.</p>
+      `;
+    } else {
+      document.getElementById('result-verdict').innerHTML = '';
+    }
 
     const toxDiv = document.getElementById('result-toxicants');
 
@@ -2095,12 +2160,13 @@
       return `hsla(${hue}, 70%, ${lightness}%, ${alpha})`;
     }
 
-    const VERDICT_LABELS_SHORT = { concerning: 'CONCERNING', caution: 'USE CAUTION', clean: 'CLEAN' };
-    const crownSvg = `<svg class="spectrum-crown" width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M2 20h20v2H2v-2zM3 8l4.5 4.5L12 4l4.5 8.5L21 8v11H3V8z"/></svg>`;
-    const arrowR = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`;
-    const arrowL = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>`;
+    const VERDICT_LABELS_SHORT = { concerning: 'Flagged', caution: 'Caution', clean: 'Clean' };
+    const arrowUp   = `<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>`;
+    const arrowDown = `<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>`;
+    // Gold crown SVG for winner badge
+    const crownGold = `<svg width="16" height="16" viewBox="0 0 24 24" fill="#fbbf24" stroke="none" aria-hidden="true"><path d="M2 20h20v2H2v-2zM3 8l4.5 4.5L12 4l4.5 8.5L21 8v11H3V8z"/></svg>`;
 
-    // Build gradient stops for the card background (dark, muted)
+    // Build gradient stops — vertical (top=safest/green, bottom=most concerning/red)
     const gradStops = sortedByScore.map((item, i) => {
       const ratio = n > 1 ? i / (n - 1) : 0;
       const pct = n > 1 ? Math.round((i / (n - 1)) * 100) : 0;
@@ -2109,34 +2175,34 @@
 
     const cols = sortedByScore.map((item, i) => {
       const ratio = n > 1 ? i / (n - 1) : 0;
-      const col   = spectralColor(ratio);
-      const colBg = spectralColor(ratio, 45, 0.18);
+      const col       = spectralColor(ratio);
+      const colBg     = spectralColor(ratio, 45, 0.18);
       const colBorder = spectralColor(ratio, 55, 0.35);
       const r = resultMap[item.name];
-      const verdict = r ? r.analysis.verdict : 'clean';
-      const vLabel  = VERDICT_LABELS_SHORT[verdict] || verdict.toUpperCase();
+      const verdict  = r ? r.analysis.verdict : 'clean';
+      const vLabel   = VERDICT_LABELS_SHORT[verdict] || verdict.toUpperCase();
       const isWinner = i === 0;
       const toxCount = r ? (r.analysis.total_toxicants_detected || 0) : 0;
       const toxLabel = toxCount === 0 ? 'No concerns' : `${toxCount} toxicant${toxCount > 1 ? 's' : ''}`;
 
       return `<div class="spectrum-col">
-        <div class="spectrum-rank" style="color:${col};">
-          ${isWinner ? crownSvg : ''}
-          <span>#${i + 1}</span>
+        <div class="spectrum-rank-wrap">
+          ${isWinner ? `<span class="spectrum-winner-crown" aria-label="Safest product">${crownGold}</span>` : ''}
+          <div class="spectrum-rank" style="color:${col};">#${i + 1}</div>
         </div>
         <div class="spectrum-name">${escHtml(item.name)}</div>
-        <div class="spectrum-verdict" style="color:${col}; background:${colBg}; border:1px solid ${colBorder};">${vLabel}</div>
-        <div class="spectrum-score">${toxLabel}</div>
+        <div class="spectrum-right">
+          <div class="spectrum-verdict" style="color:${col}; background:${colBg}; border:1px solid ${colBorder};">${vLabel}</div>
+          <div class="spectrum-score">${toxLabel}</div>
+        </div>
       </div>`;
     }).join('');
 
     const bannerHtml = `
-      <div class="spectrum-card" style="background: linear-gradient(to right, ${gradStops});">
-        <div class="spectrum-axis">
-          <span class="spectrum-axis-label safe">${arrowL} Safest</span>
-          <span class="spectrum-axis-label risk">Most Concerning ${arrowR}</span>
-        </div>
+      <div class="spectrum-card" style="background: linear-gradient(to bottom, ${gradStops});">
+        <div class="spectrum-axis-header">${arrowUp} Safest</div>
         <div class="spectrum-cols">${cols}</div>
+        <div class="spectrum-axis-footer">${arrowDown} Most Flagged</div>
         <div class="spectrum-reason">${escHtml(recommendation.reason)}</div>
       </div>`;
 
@@ -2157,7 +2223,7 @@
     const winnerName = recommendation.winner_name;
     const TIER_LABELS = { high: 'HIGH', medium: 'MED', low: 'TRACE' };
     const VERDICT_COLORS = { concerning: 'var(--red)', caution: 'var(--amber)', clean: 'var(--green)' };
-    const VERDICT_LABELS = { concerning: 'CONCERNING', caution: 'USE CAUTION', clean: 'CLEAN' };
+    const VERDICT_LABELS = { concerning: 'Flagged', caution: 'Caution', clean: 'Clean' };
 
     let tableHtml;
     if (sortedTox.length === 0) {
@@ -2296,13 +2362,36 @@
     { key: 'dioxane',               label: '1,4-Dioxane' },
   ];
 
+  const ORGAN_WATCHLIST_KEY = 'cosmotox_watchlist_organs_v1';
+  const WATCHLIST_ORGANS = [
+    { key: 'skin',         label: 'Skin',                  keywords: ['skin', 'dermal', 'dermatitis', 'epidermis', 'cutaneous'] },
+    { key: 'liver',        label: 'Liver',                  keywords: ['liver', 'hepatic', 'hepato', 'hepatotoxic'] },
+    { key: 'kidneys',      label: 'Kidneys',                keywords: ['kidney', 'renal', 'nephro'] },
+    { key: 'brain',        label: 'Brain / Nervous System', keywords: ['brain', 'nervous', 'neuro', 'neural', 'cognitive', 'neurotoxic'] },
+    { key: 'endocrine',    label: 'Endocrine / Hormones',   keywords: ['endocrine', 'hormone', 'estrogenic', 'androgenic', 'endocrine disrupt'] },
+    { key: 'reproductive', label: 'Reproductive System',    keywords: ['reproductive', 'fertility', 'ovarian', 'testicular', 'uterine', 'sperm'] },
+    { key: 'thyroid',      label: 'Thyroid',                keywords: ['thyroid'] },
+    { key: 'lungs',        label: 'Lungs / Respiratory',    keywords: ['lung', 'respiratory', 'pulmonary', 'airway', 'bronch'] },
+    { key: 'immune',       label: 'Immune System',          keywords: ['immune', 'allerg', 'sensitiz', 'immunotoxic'] },
+    { key: 'eyes',         label: 'Eyes',                   keywords: ['eye', 'ocular', 'ophthalm'] },
+  ];
+
   const watchlist = (() => {
     try { return new Set(JSON.parse(localStorage.getItem(WATCHLIST_KEY) || '[]')); }
     catch(e) { return new Set(); }
   })();
 
+  const organWatchlist = (() => {
+    try { return new Set(JSON.parse(localStorage.getItem(ORGAN_WATCHLIST_KEY) || '[]')); }
+    catch(e) { return new Set(); }
+  })();
+
   function saveWatchlist() {
     try { localStorage.setItem(WATCHLIST_KEY, JSON.stringify([...watchlist])); } catch(e) {}
+  }
+
+  function saveOrganWatchlist() {
+    try { localStorage.setItem(ORGAN_WATCHLIST_KEY, JSON.stringify([...organWatchlist])); } catch(e) {}
   }
 
   function toggleWatchlistItem(key) {
@@ -2312,10 +2401,37 @@
     renderWatchlistScreen();
   }
 
+  function toggleOrganWatchlistItem(key) {
+    if (organWatchlist.has(key)) organWatchlist.delete(key);
+    else organWatchlist.add(key);
+    saveOrganWatchlist();
+    renderWatchlistScreen();
+  }
+
+  // Returns true if any of a toxicant's top_organs match the given organ key's keywords
+  function organMatchesToxicant(top_organs, organ_key) {
+    const organ = WATCHLIST_ORGANS.find(o => o.key === organ_key);
+    if (!organ || !top_organs) return false;
+    return top_organs.some(org =>
+      organ.keywords.some(kw => org.toLowerCase().includes(kw.toLowerCase()))
+    );
+  }
+
   function renderWatchlistScreen() {
     const grid = document.getElementById('watchlist-grid');
+    const organGrid = document.getElementById('watchlist-organ-grid');
+    const toxFilter = (document.getElementById('watchlist-toxicant-search') || {}).value || '';
+    const orgFilter = (document.getElementById('watchlist-organ-search') || {}).value || '';
     if (!grid) return;
-    grid.innerHTML = WATCHLIST_CATEGORIES.map(cat => {
+
+    const filteredTox = WATCHLIST_CATEGORIES.filter(cat =>
+      cat.label.toLowerCase().includes(toxFilter.toLowerCase())
+    );
+    const filteredOrg = WATCHLIST_ORGANS.filter(cat =>
+      cat.label.toLowerCase().includes(orgFilter.toLowerCase())
+    );
+
+    grid.innerHTML = filteredTox.map(cat => {
       const active = watchlist.has(cat.key);
       return `
         <button class="watchlist-chip${active ? ' active' : ''}"
@@ -2324,7 +2440,20 @@
           <span class="watchlist-check">${active ? '✓' : ''}</span>
           ${escHtml(cat.label)}
         </button>`;
-    }).join('');
+    }).join('') || '<p style="color:var(--text-muted);font-size:0.8rem;padding:4px 0;">No matches</p>';
+
+    if (organGrid) {
+      organGrid.innerHTML = filteredOrg.map(cat => {
+        const active = organWatchlist.has(cat.key);
+        return `
+          <button class="watchlist-chip${active ? ' active' : ''}"
+                  onclick="toggleOrganWatchlistItem('${cat.key}')"
+                  aria-pressed="${active}" aria-label="${escHtml(cat.label)}">
+            <span class="watchlist-check">${active ? '✓' : ''}</span>
+            ${escHtml(cat.label)}
+          </button>`;
+      }).join('') || '<p style="color:var(--text-muted);font-size:0.8rem;padding:4px 0;">No matches</p>';
+    }
   }
 
   // ── Initialization ───────────────────────────────────────────────────────────
