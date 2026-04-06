@@ -13,7 +13,7 @@ from collections import Counter
 
 import pandas as pd
 
-from tools.inci_mapping import TOXICANT_INCI_MAP, TOXICANT_DISPLAY, SHORT_SYNONYMS
+from agent.tools.inci_mapping import TOXICANT_INCI_MAP, TOXICANT_DISPLAY, SHORT_SYNONYMS
 
 
 # Tier-adjusted verdict thresholds.

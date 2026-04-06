@@ -1,10 +1,9 @@
 """
 CosmoTox Product Scanner — FastAPI Backend
-Run with: uvicorn api:app --host 0.0.0.0 --port 8000
+Run with: python3 -m uvicorn agent.api:app --host 0.0.0.0 --port 8000
 """
 
 import os
-import sys
 from contextlib import asynccontextmanager
 
 import pandas as pd
@@ -16,13 +15,11 @@ from fastapi.staticfiles import StaticFiles
 from groq import Groq
 from pydantic import BaseModel
 
-sys.path.insert(0, os.path.dirname(__file__))
-
-from tools.fetch_product import fetch_by_barcode, parse_ingredients_text
-from tools.analyze_ingredients import analyze
+from agent.tools.fetch_product import fetch_by_barcode, parse_ingredients_text
+from agent.tools.analyze_ingredients import analyze
 
 # ── Environment ───────────────────────────────────────────────────────────────
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 DATABASE_PATH = os.getenv("DATABASE_PATH", "database")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 
