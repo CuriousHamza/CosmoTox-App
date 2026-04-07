@@ -11,6 +11,27 @@ import re
 import time
 from collections import Counter
 
+
+def parse_ingredients_text(raw: str) -> list:
+    """
+    Parse a raw ingredient string like:
+      "Aqua, Glycerin, Fragrance (Linalool, Limonene), Methylparaben*"
+    into a flat, lowercased, cleaned list:
+      ["aqua", "glycerin", "fragrance", "linalool", "limonene", "methylparaben"]
+    """
+    if not raw:
+        return []
+    raw = re.sub(r'\(([^)]+)\)', lambda m: ', ' + m.group(1), raw)
+    items = []
+    for item in raw.split(','):
+        item = item.strip()
+        item = re.sub(r'[\[\]{}]', '', item)
+        item = item.rstrip('*').rstrip('0123456789').strip()
+        item = item.lower()
+        if len(item) > 1:
+            items.append(item)
+    return items
+
 import pandas as pd
 
 from agent.tools.inci_mapping import TOXICANT_INCI_MAP, TOXICANT_DISPLAY, SHORT_SYNONYMS

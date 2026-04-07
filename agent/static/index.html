@@ -8,6 +8,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/style.css" />
+  <!-- Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- !! Replace these with your Supabase project values !! -->
+  <script>
+    const SUPABASE_URL      = 'https://bgyvcxaiuxewbhssymlv.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJneXZjeGFpdXhld2Joc3N5bWx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0Njk0MDAsImV4cCI6MjA5MTA0NTQwMH0.B5eze7CHw8jABlzeUsFPsv4NYXj9MK1GN_PIHIRYq2U';
+  </script>
 </head>
 <body>
 <div class="app">
@@ -39,6 +46,15 @@
         <circle cx="4" cy="6" r="2" fill="currentColor" stroke="none"/>
         <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/>
         <circle cx="8" cy="18" r="2" fill="currentColor" stroke="none"/>
+      </svg>
+    </button>
+    <button id="logout-btn" onclick="handleLogout()" aria-label="Sign out"
+            style="display:none;background:rgba(239,68,68,0.1);border:1.5px solid rgba(239,68,68,0.3);color:#f87171;cursor:pointer;padding:6px 8px;display:none;align-items:center;touch-action:manipulation;border-radius:8px;transition:background 0.15s,border-color 0.15s;margin-left:6px;"
+            onmouseover="this.style.background='rgba(239,68,68,0.2)'" onmouseout="this.style.background='rgba(239,68,68,0.1)'">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
       </svg>
     </button>
   </header>
@@ -100,34 +116,6 @@
           </svg>
           Compare Products
         </button>
-      </div>
-
-      <div style="margin-top:10px;">
-        <button class="btn btn-secondary btn-full" onclick="toggleBarcodeInput()" id="barcode-toggle-btn" aria-label="Look up product by barcode">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M3 5v14M7 5v14M11 5v14M15 5v14M19 5v14"/>
-            <rect x="1" y="3" width="22" height="18" rx="2" stroke-width="1.5"/>
-          </svg>
-          Look Up by Barcode
-        </button>
-        <div class="barcode-input-row" id="barcode-input-row">
-          <input type="tel" id="barcode-text" class="barcode-text-input"
-                 placeholder="Enter barcode number…" inputmode="numeric"
-                 onkeydown="if(event.key==='Enter')lookupBarcode()" autocomplete="off" />
-          <button class="btn btn-primary" onclick="lookupBarcode()"
-                  style="flex-shrink:0;padding:10px 18px;min-height:48px;" aria-label="Look up barcode">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-          </button>
-        </div>
-        <div id="barcode-cam-btn-wrap" style="display:none; margin-top:8px;">
-          <button class="btn btn-secondary btn-full" onclick="startBarcodeCamera()" aria-label="Scan barcode with camera">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-              <circle cx="12" cy="13" r="4"/>
-            </svg>
-            Scan Barcode with Camera
-          </button>
-        </div>
       </div>
 
       <div class="history-section" id="history-section" style="display:none;">
@@ -250,6 +238,94 @@
 
   </div>
 
+  <!-- ── Screen: Login ── -->
+  <div class="screen" id="screen-login">
+    <div class="auth-wrap">
+      <div class="auth-logo">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2dd4bf" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="1.5"/>
+          <ellipse cx="12" cy="12" rx="9" ry="3.5"/>
+          <ellipse cx="12" cy="12" rx="9" ry="3.5" transform="rotate(60 12 12)"/>
+          <ellipse cx="12" cy="12" rx="9" ry="3.5" transform="rotate(120 12 12)"/>
+        </svg>
+      </div>
+      <h2 class="auth-title">Welcome back</h2>
+      <p class="auth-sub">Sign in to CosmoTox Scanner</p>
+
+      <div id="login-error" class="auth-error" style="display:none;"></div>
+
+      <div class="auth-field">
+        <label for="login-email">Email</label>
+        <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" />
+      </div>
+      <div class="auth-field">
+        <label for="login-password">Password</label>
+        <input type="password" id="login-password" placeholder="Your password"
+               autocomplete="current-password"
+               onkeydown="if(event.key==='Enter')handleLogin()" />
+      </div>
+
+      <button class="btn btn-primary btn-full auth-submit" onclick="handleLogin()" id="login-btn">
+        Sign In
+      </button>
+
+      <p class="auth-switch">
+        Don't have an account?
+        <button onclick="showScreen('register')" class="auth-link">Create one</button>
+      </p>
+    </div>
+  </div>
+
+  <!-- ── Screen: Register ── -->
+  <div class="screen" id="screen-register">
+    <div class="auth-wrap">
+      <div class="auth-logo">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2dd4bf" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="1.5"/>
+          <ellipse cx="12" cy="12" rx="9" ry="3.5"/>
+          <ellipse cx="12" cy="12" rx="9" ry="3.5" transform="rotate(60 12 12)"/>
+          <ellipse cx="12" cy="12" rx="9" ry="3.5" transform="rotate(120 12 12)"/>
+        </svg>
+      </div>
+      <h2 class="auth-title">Create account</h2>
+      <p class="auth-sub">Start scanning cosmetics safely</p>
+
+      <div id="register-error" class="auth-error" style="display:none;"></div>
+      <div id="register-success" class="auth-success" style="display:none;">
+        Check your email to confirm your account, then sign in.
+      </div>
+
+      <div class="auth-field">
+        <label for="register-name">Your name</label>
+        <input type="text" id="register-name" placeholder="Hamza" autocomplete="name" />
+      </div>
+      <div class="auth-field">
+        <label for="register-email">Email</label>
+        <input type="email" id="register-email" placeholder="you@example.com" autocomplete="email" />
+      </div>
+      <div class="auth-field">
+        <label for="register-password">Password</label>
+        <input type="password" id="register-password" placeholder="At least 6 characters"
+               autocomplete="new-password"
+               onkeydown="if(event.key==='Enter')handleRegister()" />
+      </div>
+
+      <button class="btn btn-primary btn-full auth-submit" onclick="handleRegister()" id="register-btn">
+        Create Account
+      </button>
+
+      <p class="auth-switch">
+        Already have an account?
+        <button onclick="showScreen('login')" class="auth-link">Sign in</button>
+      </p>
+
+      <p class="auth-privacy">
+        By signing up you agree to our
+        <a href="/static/privacy.html" target="_blank" class="auth-link">Privacy Policy</a>.
+      </p>
+    </div>
+  </div>
+
   <!-- ── Screen: Watchlist ── -->
   <div class="screen" id="screen-watchlist">
     <div class="results-header">
@@ -296,16 +372,6 @@
     <div class="watchlist-grid" id="watchlist-organ-grid"></div>
   </div>
 
-</div>
-
-<!-- Barcode camera overlay (outside .app, fixed position) -->
-<div id="barcode-overlay">
-  <video id="barcode-video" autoplay muted playsinline></video>
-  <div class="barcode-overlay-ui">
-    <div class="barcode-target"></div>
-    <div class="barcode-overlay-label">Align barcode in the frame</div>
-  </div>
-  <button class="barcode-cancel-btn" onclick="stopBarcodeCamera()">Cancel</button>
 </div>
 
 <!-- Toast notification -->

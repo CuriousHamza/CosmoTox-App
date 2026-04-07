@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — CosmoTox Scanner</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg: #080c12; --surface: #0d1420; --border: #1e293b; --accent: #2dd4bf; --text: #e2e8f0; --text-muted: #64748b; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 40px 20px; line-height: 1.7; }
+    .wrap { max-width: 680px; margin: 0 auto; }
+    .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 40px; }
+    .logo svg { flex-shrink: 0; }
+    .logo-name { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.02em; }
+    h1 { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 6px; }
+    .date { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 36px; }
+    h2 { font-size: 1rem; font-weight: 700; color: var(--accent); margin: 28px 0 8px; }
+    p { font-size: 0.93rem; color: var(--text-muted); margin-bottom: 10px; }
+    ul { padding-left: 20px; margin-bottom: 10px; }
+    ul li { font-size: 0.93rem; color: var(--text-muted); margin-bottom: 4px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    hr { border: none; border-top: 1px solid var(--border); margin: 36px 0; }
+    .back { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 32px; cursor: pointer; }
+    .back:hover { color: var(--accent); }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <a class="back" href="javascript:history.back()">
+    ← Back to app
+  </a>
+
+  <div class="logo">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2dd4bf" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="1.5"/>
+      <ellipse cx="12" cy="12" rx="9" ry="3.5"/>
+      <ellipse cx="12" cy="12" rx="9" ry="3.5" transform="rotate(60 12 12)"/>
+      <ellipse cx="12" cy="12" rx="9" ry="3.5" transform="rotate(120 12 12)"/>
+    </svg>
+    <span class="logo-name">CosmoTox Scanner</span>
+  </div>
+
+  <h1>Privacy Policy</h1>
+  <p class="date">Last updated: April 2026</p>
+
+  <p>CosmoTox Scanner ("we", "our", or "the app") is an evidence-based cosmetic ingredient analysis tool. This policy explains what data we collect, why we collect it, and how we protect it.</p>
+
+  <h2>1. What We Collect</h2>
+  <p>When you create an account and use the app, we collect:</p>
+  <ul>
+    <li><strong>Email address</strong> — used to create and authenticate your account.</li>
+    <li><strong>Display name</strong> — optional, provided at registration.</li>
+    <li><strong>Scan history</strong> — the verdict (Clean / Caution / Flagged), toxicant categories detected, and product name (if you typed one) for each scan you perform. We do not store the full ingredient text.</li>
+    <li><strong>Watchlist preferences</strong> — the toxicant and body-organ categories you have selected to track.</li>
+  </ul>
+
+  <h2>2. Why We Collect It</h2>
+  <ul>
+    <li><strong>Account authentication</strong> — to let you sign in securely and keep your data private from other users.</li>
+    <li><strong>Sync across devices</strong> — so your watchlist is available on every device you sign in from.</li>
+    <li><strong>Product safety research</strong> — aggregated, anonymised scan data (e.g., "fragrance is the most frequently detected toxicant") may be used internally to improve the app and understand market trends. We never sell individual user data.</li>
+  </ul>
+
+  <h2>3. How We Store and Protect It</h2>
+  <p>All data is stored in a Supabase-managed PostgreSQL database with Row Level Security (RLS) enabled. This means your data is isolated by design — no other user can read your scans or watchlist. Connections are encrypted in transit (TLS).</p>
+
+  <h2>4. Data Retention</h2>
+  <p>Your data is retained for as long as your account exists. You may request deletion of your account and all associated data by emailing us (see contact below). We will process deletion requests within 14 days.</p>
+
+  <h2>5. Third-Party Services</h2>
+  <ul>
+    <li><strong>Supabase</strong> — database and authentication. Supabase's privacy policy applies to infrastructure-level data handling.</li>
+    <li><strong>Groq</strong> — cloud AI service used for OCR (photo-to-text) and ingredient summaries. Images sent for OCR are not stored by us after processing.</li>
+    <li><strong>Google Fonts</strong> — font files loaded from Google's CDN; standard browser request, no personal data shared.</li>
+  </ul>
+
+  <h2>6. Cookies and Local Storage</h2>
+  <p>The app uses browser <code>localStorage</code> to cache your watchlist and scan history locally for offline performance. No third-party tracking cookies are used.</p>
+
+  <h2>7. Your Rights</h2>
+  <p>You have the right to access, correct, or delete your personal data at any time. To exercise these rights, contact us at the address below.</p>
+
+  <h2>8. Changes to This Policy</h2>
+  <p>We may update this policy as the product evolves. We will notify active users of material changes via the app or email.</p>
+
+  <hr />
+
+  <h2>Contact</h2>
+  <p>For privacy questions or data deletion requests, contact:<br>
+  <strong>CosmoTox — Hamza Baksh</strong><br>
+  Email: <a href="mailto:contact@cosmotox.app">contact@cosmotox.app</a></p>
+
+</div>
+</body>
+</html>

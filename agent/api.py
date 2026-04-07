@@ -4,24 +4,26 @@ Run with: python3 -m uvicorn agent.api:app --host 0.0.0.0 --port 8000
 """
 
 import os
+import uuid
 from contextlib import asynccontextmanager
 
 import pandas as pd
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from groq import Groq
 from pydantic import BaseModel
 
-from agent.tools.fetch_product import fetch_by_barcode, parse_ingredients_text
-from agent.tools.analyze_ingredients import analyze
+from agent.auth.dependencies import get_current_user
+from agent.auth.supabase_client import get_supabase
+from agent.tools.analyze_ingredients import analyze, parse_ingredients_text
 
 # ── Environment ───────────────────────────────────────────────────────────────
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 DATABASE_PATH = os.getenv("DATABASE_PATH", "database")
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_API_KEY  = os.getenv("GROQ_API_KEY", "")
 
 # ── Load database once at startup ─────────────────────────────────────────────
 def load_database(db_path: str) -> pd.DataFrame:
@@ -37,10 +39,9 @@ app_state = {}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     if not GROQ_API_KEY:
         raise RuntimeError("GROQ_API_KEY not set in .env")
-    app_state["df"] = load_database(DATABASE_PATH)
+    app_state["df"]   = load_database(DATABASE_PATH)
     app_state["groq"] = Groq(api_key=GROQ_API_KEY)
     print(f"[CosmoTox] Database loaded: {len(app_state['df'])} relevant papers")
     yield
@@ -49,14 +50,15 @@ async def lifespan(app: FastAPI):
 # ── FastAPI app ───────────────────────────────────────────────────────────────
 app = FastAPI(title="CosmoTox Scanner API", lifespan=lifespan)
 
+FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "*")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[FRONTEND_ORIGIN] if FRONTEND_ORIGIN != "*" else ["*"],
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=True,
 )
 
-# Serve static files (index.html)
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
@@ -76,7 +78,31 @@ class CompareProductItem(BaseModel):
 class CompareRequest(BaseModel):
     products: list[CompareProductItem]
 
-# ── Endpoints ─────────────────────────────────────────────────────────────────
+class WatchlistBody(BaseModel):
+    watchlist_type: str  # "toxicant" or "organ"
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+def _log_scan(user_id: str, scan_type: str, product_name: str | None,
+              analysis: dict, compare_group_id: str | None = None) -> None:
+    """Write one row to Supabase scan_history. Errors are non-fatal."""
+    try:
+        sb = get_supabase()
+        row = {
+            "user_id": user_id,
+            "scan_type": scan_type,
+            "product_name": product_name,
+            "verdict": analysis.get("verdict"),
+            "toxicant_count": analysis.get("total_toxicants_detected", 0),
+            "paper_count": analysis.get("total_relevant_papers", 0),
+            "top_toxicants": [t["toxicant_key"] for t in analysis.get("detected_toxicants", [])],
+        }
+        if compare_group_id:
+            row["compare_group_id"] = compare_group_id
+        sb.table("scan_history").insert(row).execute()
+    except Exception as e:
+        print(f"[CosmoTox] scan_history log failed (non-fatal): {e}")
+
+# ── Public endpoints ──────────────────────────────────────────────────────────
 
 @app.get("/")
 def serve_index():
@@ -93,49 +119,10 @@ def health():
         "papers_loaded": len(app_state.get("df", [])),
     }
 
-
-@app.get("/scan/{barcode}")
-def scan_barcode(barcode: str):
-    df = app_state["df"]
-    groq_client = app_state["groq"]
-
-    # Step 1: fetch product
-    product = fetch_by_barcode(barcode)
-
-    # Step 2: handle non-ok statuses
-    if product["status"] == "error":
-        return {
-            "error": product.get("error_message", "Failed to fetch product."),
-            "product": product,
-            "analysis": None,
-        }
-
-    if product["status"] == "not_found":
-        return {
-            "error": "Product not found in Open Beauty Facts.",
-            "product": product,
-            "analysis": None,
-        }
-
-    if product["status"] == "no_ingredients":
-        return {
-            "error": "Product found but no ingredient list is available.",
-            "product": product,
-            "analysis": None,
-        }
-
-    # Step 3: analyze
-    result = analyze(product["ingredients_list"], df, groq_client)
-
-    return {
-        "error": None,
-        "product": product,
-        "analysis": result,
-    }
-
+# ── Auth-gated endpoints ──────────────────────────────────────────────────────
 
 @app.post("/ocr-ingredients")
-def ocr_ingredients(body: OcrRequest):
+def ocr_ingredients(body: OcrRequest, current_user: dict = Depends(get_current_user)):
     groq_client = app_state["groq"]
 
     response = groq_client.chat.completions.create(
@@ -173,21 +160,18 @@ def ocr_ingredients(body: OcrRequest):
 
 
 @app.post("/analyze")
-def analyze_ingredients(body: AnalyzeRequest):
-    df = app_state["df"]
-    groq_client = app_state["groq"]
+def analyze_ingredients(body: AnalyzeRequest, current_user: dict = Depends(get_current_user)):
+    df           = app_state["df"]
+    groq_client  = app_state["groq"]
 
     ingredients = parse_ingredients_text(body.ingredients_text)
     if not ingredients:
         raise HTTPException(status_code=400, detail="Could not parse any ingredients from the text.")
 
     result = analyze(ingredients, df, groq_client)
+    _log_scan(current_user["id"], "manual", None, result)
 
-    return {
-        "error": None,
-        "product": None,
-        "analysis": result,
-    }
+    return {"error": None, "product": None, "analysis": result}
 
 
 def _compute_compare_score(analysis: dict) -> float:
@@ -199,16 +183,16 @@ def _compute_compare_score(analysis: dict) -> float:
 
 
 @app.post("/compare")
-def compare_products(body: CompareRequest):
+def compare_products(body: CompareRequest, current_user: dict = Depends(get_current_user)):
     if len(body.products) < 2:
         raise HTTPException(status_code=400, detail="Please provide at least 2 products to compare.")
 
-    df = app_state["df"]
+    df          = app_state["df"]
     groq_client = app_state["groq"]
 
     results = []
     for i, item in enumerate(body.products):
-        name = item.name.strip() or f"Product {i + 1}"
+        name        = item.name.strip() or f"Product {i + 1}"
         ingredients = parse_ingredients_text(item.ingredients_text)
         if not ingredients:
             results.append({
@@ -226,12 +210,18 @@ def compare_products(body: CompareRequest):
             continue
         results.append({"name": name, "analysis": analyze(ingredients, df, groq_client)})
 
+    # Log all products in this compare session, linked by a shared group ID
+    group_id = str(uuid.uuid4())
+    for r in results:
+        _log_scan(current_user["id"], "compare", r["name"], r["analysis"], group_id)
+
     # Score and rank
-    scored = sorted([(r, _compute_compare_score(r["analysis"])) for r in results], key=lambda x: x[1])
-    winner, winner_score = scored[0]
+    scored       = sorted([(r, _compute_compare_score(r["analysis"])) for r in results], key=lambda x: x[1])
+    winner, _    = scored[0]
     winner_verdict = winner["analysis"].get("verdict", "clean")
 
     # Build recommendation reason
+    winner_score = _compute_compare_score(winner["analysis"])
     if winner_score == 0:
         reason = f"{winner['name']} has no detected toxicant concerns."
         others_with_issues = [r for r, s in scored[1:] if s > 0]
@@ -264,3 +254,31 @@ def compare_products(body: CompareRequest):
             "scores": [{"name": r["name"], "score": round(s, 1)} for r, s in scored],
         },
     }
+
+# ── Watchlist endpoints ───────────────────────────────────────────────────────
+
+@app.get("/watchlist")
+def get_watchlist(current_user: dict = Depends(get_current_user)):
+    sb = get_supabase()
+    res = sb.table("watchlist").select("watchlist_type, key, added_at").eq("user_id", current_user["id"]).execute()
+    return {"watchlist": res.data}
+
+
+@app.post("/watchlist/{key}")
+def add_watchlist(key: str, body: WatchlistBody, current_user: dict = Depends(get_current_user)):
+    if body.watchlist_type not in ("toxicant", "organ"):
+        raise HTTPException(status_code=400, detail="watchlist_type must be 'toxicant' or 'organ'.")
+    sb = get_supabase()
+    sb.table("watchlist").upsert({
+        "user_id": current_user["id"],
+        "watchlist_type": body.watchlist_type,
+        "key": key,
+    }).execute()
+    return {"ok": True}
+
+
+@app.delete("/watchlist/{key}")
+def remove_watchlist(key: str, body: WatchlistBody, current_user: dict = Depends(get_current_user)):
+    sb = get_supabase()
+    sb.table("watchlist").delete().eq("user_id", current_user["id"]).eq("key", key).eq("watchlist_type", body.watchlist_type).execute()
+    return {"ok": True}

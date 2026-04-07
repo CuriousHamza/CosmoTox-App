@@ -1,5 +1,107 @@
 const API_BASE = window.location.origin;
 
+// ── Supabase auth ────────────────────────────────────────────────────────────
+const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let _session = null;
+
+async function getToken() {
+  const { data } = await _supabase.auth.getSession();
+  _session = data.session;
+  return _session?.access_token || null;
+}
+
+function authHeaders() {
+  const token = _session?.access_token;
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return headers;
+}
+
+async function handleLogin() {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl    = document.getElementById('login-error');
+  const btn      = document.getElementById('login-btn');
+  errEl.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
+  btn.disabled = false; btn.textContent = 'Sign In';
+  if (error) {
+    errEl.textContent = error.message;
+    errEl.style.display = 'block';
+    return;
+  }
+  _session = data.session;
+  _onSignedIn();
+}
+
+async function handleRegister() {
+  const name     = document.getElementById('register-name').value.trim();
+  const email    = document.getElementById('register-email').value.trim();
+  const password = document.getElementById('register-password').value;
+  const errEl    = document.getElementById('register-error');
+  const succEl   = document.getElementById('register-success');
+  const btn      = document.getElementById('register-btn');
+  errEl.style.display = 'none'; succEl.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'Creating account…';
+  const { error } = await _supabase.auth.signUp({
+    email, password,
+    options: { data: { display_name: name } },
+  });
+  btn.disabled = false; btn.textContent = 'Create Account';
+  if (error) {
+    errEl.textContent = error.message;
+    errEl.style.display = 'block';
+    return;
+  }
+  succEl.style.display = 'block';
+}
+
+async function handleLogout() {
+  await _supabase.auth.signOut();
+  _session = null;
+  showScreen('login');
+  document.getElementById('logout-btn').style.display = 'none';
+}
+
+function _onSignedIn() {
+  document.getElementById('logout-btn').style.display = 'flex';
+  _loadWatchlistFromApi();
+  showScreen('home');
+}
+
+async function _loadWatchlistFromApi() {
+  const token = _session?.access_token;
+  if (!token) return;
+  try {
+    const res = await fetch(`${API_BASE}/watchlist`, { headers: authHeaders() });
+    if (!res.ok) return;
+    const data = await res.json();
+    watchlist.clear();
+    organWatchlist.clear();
+    for (const item of data.watchlist) {
+      if (item.watchlist_type === 'toxicant') watchlist.add(item.key);
+      if (item.watchlist_type === 'organ')    organWatchlist.add(item.key);
+    }
+    localStorage.setItem(WATCHLIST_KEY,       JSON.stringify([...watchlist]));
+    localStorage.setItem(ORGAN_WATCHLIST_KEY, JSON.stringify([...organWatchlist]));
+    renderWatchlistScreen();
+  } catch(e) {}
+}
+
+async function _syncWatchlistItem(key, watchlistType, adding) {
+  const token = _session?.access_token;
+  if (!token) return; // offline: localStorage already updated
+  try {
+    const method = adding ? 'POST' : 'DELETE';
+    await fetch(`${API_BASE}/watchlist/${encodeURIComponent(key)}`, {
+      method,
+      headers: authHeaders(),
+      body: JSON.stringify({ watchlist_type: watchlistType }),
+    });
+  } catch(e) {}
+}
+
 // ── Screen transitions ──────────────────────────────────────────────────────
 function showScreen(id) {
   if (id !== 'loading') stopIconCycle();
@@ -125,102 +227,6 @@ function showHistoryItem(i) {
   renderResults(item.name, item.analysis);
 }
 
-// ── Barcode scanner ─────────────────────────────────────────────────────────
-let _barcodeDetector = null;
-let _barcodeStream   = null;
-let _barcodeRAF      = null;
-
-// Check BarcodeDetector support on load; show camera button if available
-if ('BarcodeDetector' in window) {
-  BarcodeDetector.getSupportedFormats().then(formats => {
-    if (formats.includes('ean_13') || formats.includes('ean_8') || formats.includes('upc_a')) {
-      _barcodeDetector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'] });
-      document.getElementById('barcode-cam-btn-wrap').style.display = 'block';
-    }
-  }).catch(() => {});
-}
-
-function toggleBarcodeInput() {
-  const row = document.getElementById('barcode-input-row');
-  const showing = row.classList.toggle('visible');
-  if (showing) {
-    document.getElementById('barcode-text').focus();
-  }
-}
-
-async function lookupBarcode() {
-  const barcode = document.getElementById('barcode-text').value.trim();
-  if (!barcode) return;
-  showLoading('analyze', 'Looking up product…', 'Searching barcode database');
-  try {
-    const res = await fetch(`${API_BASE}/scan/${encodeURIComponent(barcode)}`);
-    const data = await res.json();
-    if (data.error === 'not_found') {
-      showScreen('home');
-      showOcrError('Product not found for barcode: ' + barcode + '. Try photographing the ingredients label.');
-      return;
-    }
-    if (data.error === 'no_ingredients') {
-      showScreen('home');
-      const name = data.product?.product_name || barcode;
-      showOcrError(`Found "${name}" but no ingredient data is available. Please photograph the ingredients label.`);
-      return;
-    }
-    if (data.error) {
-      showScreen('home');
-      showOcrError(data.error);
-      return;
-    }
-    const label = data.product?.product_name || barcode;
-    addToHistory(label, data.analysis);
-    renderResults(label, data.analysis);
-  } catch(e) {
-    showScreen('home');
-    showOcrError('Network error. Make sure the server is running.');
-  }
-}
-
-function startBarcodeCamera() {
-  const overlay = document.getElementById('barcode-overlay');
-  const video   = document.getElementById('barcode-video');
-  overlay.classList.add('active');
-  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-    .then(stream => {
-      _barcodeStream = stream;
-      video.srcObject = stream;
-      video.play();
-      _scanBarcodeFrame(video);
-    })
-    .catch(() => {
-      stopBarcodeCamera();
-      alert('Camera access denied or unavailable.');
-    });
-}
-
-function _scanBarcodeFrame(video) {
-  if (!_barcodeDetector) return;
-  _barcodeDetector.detect(video).then(barcodes => {
-    if (barcodes.length > 0) {
-      const code = barcodes[0].rawValue;
-      stopBarcodeCamera();
-      document.getElementById('barcode-text').value = code;
-      lookupBarcode();
-      return;
-    }
-    _barcodeRAF = requestAnimationFrame(() => _scanBarcodeFrame(video));
-  }).catch(() => {
-    _barcodeRAF = requestAnimationFrame(() => _scanBarcodeFrame(video));
-  });
-}
-
-function stopBarcodeCamera() {
-  if (_barcodeRAF) { cancelAnimationFrame(_barcodeRAF); _barcodeRAF = null; }
-  if (_barcodeStream) { _barcodeStream.getTracks().forEach(t => t.stop()); _barcodeStream = null; }
-  document.getElementById('barcode-overlay').classList.remove('active');
-  const video = document.getElementById('barcode-video');
-  video.srcObject = null;
-}
-
 // ── OCR photo flow ──────────────────────────────────────────────────────────
 function retryPhoto() {
   document.getElementById('ocr-error').style.display = 'none';
@@ -256,9 +262,10 @@ function handlePhotoUpload(file) {
     const mime_type = 'image/jpeg';
     showLoading('ocr', 'Reading label...', 'Extracting ingredients from your photo');
     try {
+      await getToken();
       const res = await fetch(`${API_BASE}/ocr-ingredients`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({ image_base64: base64, mime_type }),
       });
       showScreen('home');
@@ -292,9 +299,10 @@ async function handlePasteAnalyze() {
   if (!text) { alert('Please paste an ingredient list or upload a photo.'); return; }
   showLoading('analyze', 'Analyzing...', 'Checking ingredients against<br>15 toxicant categories and<br>peer-reviewed research');
   try {
+    await getToken();
     const res  = await fetch(`${API_BASE}/analyze`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ ingredients_text: text }),
     });
     const data = await res.json();
@@ -618,9 +626,10 @@ async function handleComparePhoto(file) {
   try {
     const dataUrl = await resizeImage(file, 1600, 0.85);
     const base64  = dataUrl.split(',')[1];
+    await getToken();
     const res     = await fetch(`${API_BASE}/ocr-ingredients`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ image_base64: base64, mime_type: 'image/jpeg' }),
     });
 
@@ -674,9 +683,10 @@ async function runComparison() {
     `Analyzing ${products.length} products — this may take a minute`);
 
   try {
+    await getToken();
     const res = await fetch(`${API_BASE}/compare`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ products }),
     });
 
@@ -948,16 +958,18 @@ function saveOrganWatchlist() {
 }
 
 function toggleWatchlistItem(key) {
-  if (watchlist.has(key)) watchlist.delete(key);
-  else watchlist.add(key);
+  const adding = !watchlist.has(key);
+  if (adding) watchlist.add(key); else watchlist.delete(key);
   saveWatchlist();
+  _syncWatchlistItem(key, 'toxicant', adding);
   renderWatchlistScreen();
 }
 
 function toggleOrganWatchlistItem(key) {
-  if (organWatchlist.has(key)) organWatchlist.delete(key);
-  else organWatchlist.add(key);
+  const adding = !organWatchlist.has(key);
+  if (adding) organWatchlist.add(key); else organWatchlist.delete(key);
   saveOrganWatchlist();
+  _syncWatchlistItem(key, 'organ', adding);
   renderWatchlistScreen();
 }
 
@@ -1012,3 +1024,25 @@ function renderWatchlistScreen() {
 // ── Initialization ───────────────────────────────────────────────────────────
 renderHistory();
 renderWatchlistScreen();
+
+// Check auth session on load
+(async () => {
+  const { data } = await _supabase.auth.getSession();
+  _session = data.session;
+  if (_session) {
+    _onSignedIn();
+  } else {
+    showScreen('login');
+  }
+})();
+
+// Keep session in sync (handles token refresh and sign-out from another tab)
+_supabase.auth.onAuthStateChange((event, session) => {
+  _session = session;
+  if (event === 'SIGNED_IN') {
+    _onSignedIn();
+  } else if (event === 'SIGNED_OUT') {
+    showScreen('login');
+    document.getElementById('logout-btn').style.display = 'none';
+  }
+});

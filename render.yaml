@@ -7,3 +7,13 @@ services:
     envVars:
       - key: DATABASE_PATH
         value: database
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: FRONTEND_ORIGIN
+        sync: false

@@ -2,5 +2,6 @@ fastapi
 uvicorn
 pandas
 groq
-requests
 python-dotenv
+supabase==2.10.0
+python-jose[cryptography]
