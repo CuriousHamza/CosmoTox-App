@@ -3,22 +3,35 @@ CosmoTox Product Scanner — FastAPI Backend
 Run with: python3 -m uvicorn agent.api:app --host 0.0.0.0 --port 8000
 """
 
+import logging
 import os
+import re as _re
 import uuid
 from contextlib import asynccontextmanager
 
 import pandas as pd
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from groq import Groq
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from agent.auth.dependencies import get_current_user
 from agent.auth.supabase_client import get_supabase
 from agent.tools.analyze_ingredients import analyze, parse_ingredients_text
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+logger = logging.getLogger("cosmotox")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
 
 # ── Environment ───────────────────────────────────────────────────────────────
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
@@ -43,29 +56,82 @@ async def lifespan(app: FastAPI):
         raise RuntimeError("GROQ_API_KEY not set in .env")
     app_state["df"]   = load_database(DATABASE_PATH)
     app_state["groq"] = Groq(api_key=GROQ_API_KEY)
-    print(f"[CosmoTox] Database loaded: {len(app_state['df'])} relevant papers")
+    logger.info(f"Database loaded: {len(app_state['df'])} relevant papers")
     yield
     app_state.clear()
 
 # ── FastAPI app ───────────────────────────────────────────────────────────────
 app = FastAPI(title="CosmoTox Scanner API", lifespan=lifespan)
 
-FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "*")
+# ── Security headers middleware ────────────────────────────────────────────────
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"]   = "nosniff"
+        response.headers["X-Frame-Options"]           = "DENY"
+        response.headers["Referrer-Policy"]           = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"]        = "camera=(), microphone=(), geolocation=()"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Content-Security-Policy"]   = (
+            "default-src 'self'; "
+            "script-src 'self' https://cdn.jsdelivr.net; "
+            "style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; "
+            "font-src https://fonts.gstatic.com; "
+            "connect-src 'self' https://*.supabase.co; "
+            "img-src 'self' data: blob:; "
+            "frame-ancestors 'none';"
+        )
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
+
+# ── CORS ──────────────────────────────────────────────────────────────────────
+FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "")
+if not FRONTEND_ORIGIN:
+    raise RuntimeError("FRONTEND_ORIGIN environment variable is not set")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_ORIGIN] if FRONTEND_ORIGIN != "*" else ["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=[FRONTEND_ORIGIN],
+    allow_methods=["GET", "POST", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
     allow_credentials=True,
 )
 
+# ── Rate limiting ─────────────────────────────────────────────────────────────
+def _rate_limit_key(request: Request) -> str:
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer ") and len(auth) > 23:
+        return f"token:{auth[7:23]}"
+    return get_remote_address(request)
+
+limiter = Limiter(key_func=_rate_limit_key)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# ── Global error handler ──────────────────────────────────────────────────────
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(
+        f"Unhandled exception on {request.method} {request.url.path}: {exc}",
+        exc_info=True,
+    )
+    return JSONResponse(
+        status_code=500,
+        content={"error": "An unexpected error occurred. Please try again."},
+    )
+
+# ── Static files ──────────────────────────────────────────────────────────────
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 # ── Request models ────────────────────────────────────────────────────────────
+ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+WATCHLIST_KEY_RE   = _re.compile(r"^[a-zA-Z0-9_\-]{1,100}$")
+
 class AnalyzeRequest(BaseModel):
-    ingredients_text: str
+    ingredients_text: str = Field(..., min_length=1, max_length=8000)
 
 class OcrRequest(BaseModel):
     image_base64: str
@@ -78,15 +144,31 @@ class OcrRequest(BaseModel):
             raise ValueError("Image too large — max 15 MB")
         return v
 
+    @field_validator("mime_type")
+    @classmethod
+    def check_mime_type(cls, v: str) -> str:
+        if v not in ALLOWED_MIME_TYPES:
+            raise ValueError(
+                f"Unsupported image type. Allowed: {', '.join(sorted(ALLOWED_MIME_TYPES))}"
+            )
+        return v
+
 class CompareProductItem(BaseModel):
-    name: str
-    ingredients_text: str
+    name: str = Field("", max_length=200)
+    ingredients_text: str = Field(..., min_length=1, max_length=8000)
 
 class CompareRequest(BaseModel):
-    products: list[CompareProductItem]
+    products: list[CompareProductItem] = Field(..., min_length=2, max_length=10)
 
 class WatchlistBody(BaseModel):
-    watchlist_type: str  # "toxicant" or "organ"
+    watchlist_type: str
+
+    @field_validator("watchlist_type")
+    @classmethod
+    def check_watchlist_type(cls, v: str) -> str:
+        if v not in ("toxicant", "organ"):
+            raise ValueError("watchlist_type must be 'toxicant' or 'organ'.")
+        return v
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def _log_scan(user_id: str, scan_type: str, product_name: str | None,
@@ -107,7 +189,7 @@ def _log_scan(user_id: str, scan_type: str, product_name: str | None,
             row["compare_group_id"] = compare_group_id
         sb.table("scan_history").insert(row).execute()
     except Exception as e:
-        print(f"[CosmoTox] scan_history log failed (non-fatal): {e}")
+        logger.warning(f"scan_history log failed (non-fatal): {e}")
 
 # ── Public endpoints ──────────────────────────────────────────────────────────
 
@@ -129,7 +211,8 @@ def health():
 # ── Auth-gated endpoints ──────────────────────────────────────────────────────
 
 @app.post("/ocr-ingredients")
-def ocr_ingredients(body: OcrRequest, current_user: dict = Depends(get_current_user)):
+@limiter.limit("20/hour")
+def ocr_ingredients(request: Request, body: OcrRequest, current_user: dict = Depends(get_current_user)):
     groq_client = app_state["groq"]
 
     response = groq_client.chat.completions.create(
@@ -167,7 +250,8 @@ def ocr_ingredients(body: OcrRequest, current_user: dict = Depends(get_current_u
 
 
 @app.post("/analyze")
-def analyze_ingredients(body: AnalyzeRequest, current_user: dict = Depends(get_current_user)):
+@limiter.limit("20/hour")
+def analyze_ingredients(request: Request, body: AnalyzeRequest, current_user: dict = Depends(get_current_user)):
     df           = app_state["df"]
     groq_client  = app_state["groq"]
 
@@ -190,10 +274,8 @@ def _compute_compare_score(analysis: dict) -> float:
 
 
 @app.post("/compare")
-def compare_products(body: CompareRequest, current_user: dict = Depends(get_current_user)):
-    if len(body.products) < 2:
-        raise HTTPException(status_code=400, detail="Please provide at least 2 products to compare.")
-
+@limiter.limit("10/hour")
+def compare_products(request: Request, body: CompareRequest, current_user: dict = Depends(get_current_user)):
     df          = app_state["df"]
     groq_client = app_state["groq"]
 
@@ -218,9 +300,9 @@ def compare_products(body: CompareRequest, current_user: dict = Depends(get_curr
         try:
             analysis = analyze(ingredients, df, groq_client)
         except Exception as e:
-            print(f"[CosmoTox] compare analysis failed for '{name}': {e}")
+            logger.error(f"compare analysis failed for '{name}': {e}")
             analysis = {
-                "status": "error", "error_message": str(e),
+                "status": "error", "error_message": "Analysis failed for this product.",
                 "verdict": "clean", "total_toxicants_detected": 0,
                 "total_relevant_papers": 0, "detected_toxicants": [],
                 "unmatched_ingredients": [],
@@ -275,16 +357,24 @@ def compare_products(body: CompareRequest, current_user: dict = Depends(get_curr
 # ── Watchlist endpoints ───────────────────────────────────────────────────────
 
 @app.get("/watchlist")
-def get_watchlist(current_user: dict = Depends(get_current_user)):
+@limiter.limit("100/hour")
+def get_watchlist(request: Request, current_user: dict = Depends(get_current_user),
+                  limit: int = 200, offset: int = 0):
+    limit = min(limit, 200)
     sb = get_supabase()
-    res = sb.table("watchlist").select("watchlist_type, key, added_at").eq("user_id", current_user["id"]).execute()
+    res = (sb.table("watchlist")
+             .select("watchlist_type, key, added_at")
+             .eq("user_id", current_user["id"])
+             .range(offset, offset + limit - 1)
+             .execute())
     return {"watchlist": res.data}
 
 
 @app.post("/watchlist/{key}")
-def add_watchlist(key: str, body: WatchlistBody, current_user: dict = Depends(get_current_user)):
-    if body.watchlist_type not in ("toxicant", "organ"):
-        raise HTTPException(status_code=400, detail="watchlist_type must be 'toxicant' or 'organ'.")
+@limiter.limit("100/hour")
+def add_watchlist(request: Request, key: str, body: WatchlistBody, current_user: dict = Depends(get_current_user)):
+    if not WATCHLIST_KEY_RE.match(key):
+        raise HTTPException(status_code=400, detail="Invalid watchlist key.")
     sb = get_supabase()
     sb.table("watchlist").upsert({
         "user_id": current_user["id"],
@@ -295,7 +385,10 @@ def add_watchlist(key: str, body: WatchlistBody, current_user: dict = Depends(ge
 
 
 @app.delete("/watchlist/{key}")
-def remove_watchlist(key: str, body: WatchlistBody, current_user: dict = Depends(get_current_user)):
+@limiter.limit("100/hour")
+def remove_watchlist(request: Request, key: str, body: WatchlistBody, current_user: dict = Depends(get_current_user)):
+    if not WATCHLIST_KEY_RE.match(key):
+        raise HTTPException(status_code=400, detail="Invalid watchlist key.")
     sb = get_supabase()
     sb.table("watchlist").delete().eq("user_id", current_user["id"]).eq("key", key).eq("watchlist_type", body.watchlist_type).execute()
     return {"ok": True}

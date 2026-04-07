@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co; img-src 'self' data: blob:; frame-ancestors 'none';" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>CosmoTox Scanner</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -9,7 +10,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/style.css" />
   <!-- Supabase JS SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"
+          integrity="sha384-2zrRDgDHSYB/GN3nFW3fsZXoxEhKIr3N2h63Tc6DEOB9JJdFIu8xMJT2Cph/gBil"
+          crossorigin="anonymous"></script>
   <!-- !! Replace these with your Supabase project values !! -->
   <script>
     const SUPABASE_URL      = 'https://bgyvcxaiuxewbhssymlv.supabase.co';
@@ -305,9 +308,15 @@
       </div>
       <div class="auth-field">
         <label for="register-password">Password</label>
-        <input type="password" id="register-password" placeholder="At least 6 characters"
+        <input type="password" id="register-password" placeholder="At least 8 characters"
+               minlength="8"
                autocomplete="new-password"
+               oninput="updatePasswordStrength(this.value)"
                onkeydown="if(event.key==='Enter')handleRegister()" />
+        <div id="password-strength" style="margin-top:6px;height:4px;border-radius:2px;background:#1e2533;overflow:hidden;">
+          <div id="password-strength-bar" style="height:100%;width:0%;transition:width 0.3s,background 0.3s;"></div>
+        </div>
+        <div id="password-strength-label" style="font-size:0.72rem;margin-top:4px;min-height:1em;color:var(--text-muted);"></div>
       </div>
 
       <button class="btn btn-primary btn-full auth-submit" onclick="handleRegister()" id="register-btn">

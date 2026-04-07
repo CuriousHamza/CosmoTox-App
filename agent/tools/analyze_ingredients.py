@@ -6,9 +6,12 @@ mapping, queries the research database for evidence, generates LLM summaries,
 and returns a structured analysis result.
 """
 
+import logging
 import os
 import re
 from collections import Counter
+
+logger = logging.getLogger("cosmotox")
 
 
 def parse_ingredients_text(raw: str) -> list:
@@ -200,7 +203,7 @@ Two-sentence plain-language summary:"""
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        print(f"[CosmoTox] LLM summary failed for '{display_name}': {e}")
+        logger.warning(f"LLM summary failed for '{display_name}': {e}")
         return ""
 
 

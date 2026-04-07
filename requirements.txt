@@ -1,4 +1,5 @@
 fastapi==0.135.3
+slowapi==0.1.9
 uvicorn==0.42.0
 pandas==2.3.3
 groq==1.1.2

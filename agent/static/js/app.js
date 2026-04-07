@@ -17,6 +17,31 @@ function authHeaders() {
   return headers;
 }
 
+function updatePasswordStrength(password) {
+  const bar   = document.getElementById('password-strength-bar');
+  const label = document.getElementById('password-strength-label');
+  if (!bar || !label) return;
+  let score = 0;
+  if (password.length >= 8)           score++;
+  if (password.length >= 12)          score++;
+  if (/[A-Z]/.test(password))         score++;
+  if (/[0-9]/.test(password))         score++;
+  if (/[^A-Za-z0-9]/.test(password))  score++;
+  const levels = [
+    { w: '0%',   c: '',        t: '' },
+    { w: '20%',  c: '#ef4444', t: 'Very weak' },
+    { w: '40%',  c: '#f97316', t: 'Weak' },
+    { w: '60%',  c: '#eab308', t: 'Fair' },
+    { w: '80%',  c: '#22c55e', t: 'Good' },
+    { w: '100%', c: '#2dd4bf', t: 'Strong' },
+  ];
+  const lv = password.length === 0 ? levels[0] : levels[Math.min(score, 5)];
+  bar.style.width      = lv.w;
+  bar.style.background = lv.c;
+  label.textContent    = lv.t;
+  label.style.color    = lv.c;
+}
+
 async function handleLogin() {
   const email    = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
@@ -43,6 +68,11 @@ async function handleRegister() {
   const succEl   = document.getElementById('register-success');
   const btn      = document.getElementById('register-btn');
   errEl.style.display = 'none'; succEl.style.display = 'none';
+  if (password.length < 8) {
+    errEl.textContent = 'Password must be at least 8 characters.';
+    errEl.style.display = 'block';
+    return;
+  }
   btn.disabled = true; btn.textContent = 'Creating account…';
   const { error } = await _supabase.auth.signUp({
     email, password,
@@ -86,7 +116,7 @@ async function _loadWatchlistFromApi() {
     localStorage.setItem(WATCHLIST_KEY,       JSON.stringify([...watchlist]));
     localStorage.setItem(ORGAN_WATCHLIST_KEY, JSON.stringify([...organWatchlist]));
     renderWatchlistScreen();
-  } catch(e) { console.warn('[watchlist] load failed:', e); }
+  } catch(e) { /* watchlist load failed silently */ }
 }
 
 async function _syncWatchlistItem(key, watchlistType, adding) {
@@ -99,7 +129,7 @@ async function _syncWatchlistItem(key, watchlistType, adding) {
       headers: authHeaders(),
       body: JSON.stringify({ watchlist_type: watchlistType }),
     });
-  } catch(e) { console.warn('[watchlist] sync failed:', e); }
+  } catch(e) { /* watchlist sync failed silently */ }
 }
 
 // ── Screen transitions ──────────────────────────────────────────────────────
