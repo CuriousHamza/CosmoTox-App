@@ -1032,10 +1032,21 @@ renderWatchlistScreen();
 // onAuthStateChange fires INITIAL_SESSION immediately on setup — including
 // when the page loads from a confirmation-link redirect (#access_token in URL).
 // This replaces the old IIFE + separate handler pattern.
-_supabase.auth.onAuthStateChange((event, session) => {
+_supabase.auth.onAuthStateChange(async (event, session) => {
   _session = session;
   if (event === 'INITIAL_SESSION') {
-    session ? _onSignedIn() : showScreen('login');
+    if (session) {
+      // Verify the session is still live server-side — catches deleted users
+      const { data, error } = await _supabase.auth.getUser();
+      if (error || !data.user) {
+        await _supabase.auth.signOut();
+        showScreen('login');
+      } else {
+        _onSignedIn();
+      }
+    } else {
+      showScreen('login');
+    }
   } else if (event === 'SIGNED_IN') {
     _onSignedIn();
   } else if (event === 'SIGNED_OUT') {
