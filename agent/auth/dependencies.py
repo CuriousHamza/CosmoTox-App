@@ -15,7 +15,7 @@ from jose import JWTError, jwt
 
 bearer = HTTPBearer()
 
-SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET", "")
+SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET", "").strip()
 
 
 async def get_current_user(

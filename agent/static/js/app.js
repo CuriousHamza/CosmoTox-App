@@ -270,6 +270,7 @@ function handlePhotoUpload(file) {
       });
       showScreen('home');
       if (!res.ok) {
+        if (res.status === 401) { _handle401(); return; }
         const err = await res.json().catch(() => ({}));
         showOcrError(err.detail || "Couldn't read the label. Please try a clearer photo.");
         return;
@@ -305,6 +306,7 @@ async function handlePasteAnalyze() {
       headers: authHeaders(),
       body: JSON.stringify({ ingredients_text: text }),
     });
+    if (res.status === 401) { _handle401(); return; }
     const data = await res.json();
     addToHistory(null, data.analysis);
     renderResults(null, data.analysis);
@@ -636,6 +638,7 @@ async function handleComparePhoto(file) {
     showScreen('compare');
 
     if (!res.ok) {
+      if (res.status === 401) { _handle401(); return; }
       const err = await res.json().catch(() => ({}));
       alert(err.detail || "Couldn't read the label. Please try a clearer photo.");
       return;
@@ -691,6 +694,7 @@ async function runComparison() {
     });
 
     if (!res.ok) {
+      if (res.status === 401) { _handle401(); return; }
       const err = await res.json().catch(() => ({}));
       showScreen('compare');
       alert(err.detail || 'Comparison failed. Please try again.');
@@ -1025,24 +1029,26 @@ function renderWatchlistScreen() {
 renderHistory();
 renderWatchlistScreen();
 
-// Check auth session on load
-(async () => {
-  const { data } = await _supabase.auth.getSession();
-  _session = data.session;
-  if (_session) {
-    _onSignedIn();
-  } else {
-    showScreen('login');
-  }
-})();
-
-// Keep session in sync (handles token refresh and sign-out from another tab)
+// onAuthStateChange fires INITIAL_SESSION immediately on setup — including
+// when the page loads from a confirmation-link redirect (#access_token in URL).
+// This replaces the old IIFE + separate handler pattern.
 _supabase.auth.onAuthStateChange((event, session) => {
   _session = session;
-  if (event === 'SIGNED_IN') {
+  if (event === 'INITIAL_SESSION') {
+    session ? _onSignedIn() : showScreen('login');
+  } else if (event === 'SIGNED_IN') {
     _onSignedIn();
   } else if (event === 'SIGNED_OUT') {
+    _session = null;
     showScreen('login');
     document.getElementById('logout-btn').style.display = 'none';
   }
 });
+
+function _handle401() {
+  _session = null;
+  showScreen('login');
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = 'Your session expired. Please sign in again.';
+  errEl.style.display = 'block';
+}
