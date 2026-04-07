@@ -8,7 +8,6 @@ and returns a structured analysis result.
 
 import os
 import re
-import time
 from collections import Counter
 
 
@@ -200,7 +199,8 @@ Two-sentence plain-language summary:"""
             max_tokens=150,
         )
         return response.choices[0].message.content.strip()
-    except Exception:
+    except Exception as e:
+        print(f"[CosmoTox] LLM summary failed for '{display_name}': {e}")
         return ""
 
 
@@ -271,10 +271,6 @@ def analyze(ingredients: list, df: pd.DataFrame, groq_client) -> dict:
         flagged_ingredients.update(matched_ingredients)
         display_name = TOXICANT_DISPLAY.get(toxicant_key, toxicant_key)
         evidence = get_toxicant_evidence(df, toxicant_key)
-
-        # Add small delay between Groq calls to stay under 30 RPM free tier
-        if detected:
-            time.sleep(0.5)
 
         llm_summary = generate_toxicant_summary(
             display_name, matched_ingredients, evidence, groq_client, tier=tier

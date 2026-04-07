@@ -52,3 +52,24 @@
 - Do not stop after one screenshot pass
 - Do not use `transition-all`
 - Do not use default Tailwind blue/indigo as primary color
+
+---
+
+## Deployment Verification (Backend / Live Render Fixes)
+
+For any backend code change, the verification protocol is:
+
+1. **Commit and push to GitHub** — Render auto-deploys on push to `main`
+2. **Wake the instance** — Render free tier sleeps; hit health first:
+   ```bash
+   curl -s --max-time 60 https://cosmotox-scanner.onrender.com/health
+   ```
+3. **Poll until the new code is live** — Confirm the specific change is present before screenshotting. Check every 30 s for up to 5 minutes.
+4. **Screenshot the live app:**
+   ```bash
+   node screenshot.mjs https://cosmotox-scanner.onrender.com [label]
+   ```
+5. **Extract console logs** when visual verification isn't enough — use Puppeteer to capture `console.warn/error` from the live page.
+6. **Give verdict** — state the fix is confirmed or still failing, and why.
+
+**Never mark a backend fix as verified using only localhost.** The live Render environment has different env vars and cold-start behaviour.

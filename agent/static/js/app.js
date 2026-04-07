@@ -86,7 +86,7 @@ async function _loadWatchlistFromApi() {
     localStorage.setItem(WATCHLIST_KEY,       JSON.stringify([...watchlist]));
     localStorage.setItem(ORGAN_WATCHLIST_KEY, JSON.stringify([...organWatchlist]));
     renderWatchlistScreen();
-  } catch(e) {}
+  } catch(e) { console.warn('[watchlist] load failed:', e); }
 }
 
 async function _syncWatchlistItem(key, watchlistType, adding) {
@@ -99,7 +99,7 @@ async function _syncWatchlistItem(key, watchlistType, adding) {
       headers: authHeaders(),
       body: JSON.stringify({ watchlist_type: watchlistType }),
     });
-  } catch(e) {}
+  } catch(e) { console.warn('[watchlist] sync failed:', e); }
 }
 
 // ── Screen transitions ──────────────────────────────────────────────────────
@@ -862,11 +862,12 @@ function renderCompareResults(data) {
 // ── Share / Copy (Feature 4) ─────────────────────────────────────────────────
 function buildSummaryText(label, analysis) {
   const v   = analysis ? analysis.verdict : 'clean';
-  const cfg = VERDICT[v] || VERDICT.clean;
+  const VERDICT_LABELS = { concerning: 'Flagged', caution: 'Caution', clean: 'Clean' };
+  const verdictLabel = VERDICT_LABELS[v] || 'Clean';
   const detected = analysis && analysis.detected_toxicants || [];
   let text = `CosmoTox Scan Result\n`;
   text += `Product: ${label || 'Ingredient Analysis'}\n`;
-  text += `Verdict: ${cfg.label}\n`;
+  text += `Verdict: ${verdictLabel}\n`;
   if (detected.length) {
     text += `\nConcerns found (${detected.length}):\n`;
     detected.forEach(t => {

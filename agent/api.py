@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from groq import Groq
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from agent.auth.dependencies import get_current_user
 from agent.auth.supabase_client import get_supabase
@@ -70,6 +70,13 @@ class AnalyzeRequest(BaseModel):
 class OcrRequest(BaseModel):
     image_base64: str
     mime_type: str = "image/jpeg"
+
+    @field_validator("image_base64")
+    @classmethod
+    def check_image_size(cls, v: str) -> str:
+        if len(v) > 20_000_000:  # ~15 MB decoded
+            raise ValueError("Image too large — max 15 MB")
+        return v
 
 class CompareProductItem(BaseModel):
     name: str
@@ -208,7 +215,17 @@ def compare_products(body: CompareRequest, current_user: dict = Depends(get_curr
                 },
             })
             continue
-        results.append({"name": name, "analysis": analyze(ingredients, df, groq_client)})
+        try:
+            analysis = analyze(ingredients, df, groq_client)
+        except Exception as e:
+            print(f"[CosmoTox] compare analysis failed for '{name}': {e}")
+            analysis = {
+                "status": "error", "error_message": str(e),
+                "verdict": "clean", "total_toxicants_detected": 0,
+                "total_relevant_papers": 0, "detected_toxicants": [],
+                "unmatched_ingredients": [],
+            }
+        results.append({"name": name, "analysis": analysis})
 
     # Log all products in this compare session, linked by a shared group ID
     group_id = str(uuid.uuid4())
