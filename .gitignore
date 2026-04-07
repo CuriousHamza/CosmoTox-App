@@ -36,6 +36,10 @@ WhatsApp Image*
 # Streamlit version (not deployed)
 agent/scanner.py
 
+# Claude Code (internal config — never commit)
+.claude/
+CLAUDE.md
+
 # IDE
 .vscode/
 .idea/
