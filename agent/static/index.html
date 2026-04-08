@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co; img-src 'self' data: blob:; frame-ancestors 'none';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co; img-src 'self' data: blob:;" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>CosmoTox Scanner</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,11 +13,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"
           integrity="sha384-2zrRDgDHSYB/GN3nFW3fsZXoxEhKIr3N2h63Tc6DEOB9JJdFIu8xMJT2Cph/gBil"
           crossorigin="anonymous"></script>
-  <!-- !! Replace these with your Supabase project values !! -->
-  <script>
-    const SUPABASE_URL      = 'https://bgyvcxaiuxewbhssymlv.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJneXZjeGFpdXhld2Joc3N5bWx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0Njk0MDAsImV4cCI6MjA5MTA0NTQwMH0.B5eze7CHw8jABlzeUsFPsv4NYXj9MK1GN_PIHIRYq2U';
-  </script>
+  <script src="/static/js/config.js"></script>
 </head>
 <body>
 <div class="app">
