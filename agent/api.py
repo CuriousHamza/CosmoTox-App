@@ -132,6 +132,7 @@ WATCHLIST_KEY_RE   = _re.compile(r"^[a-zA-Z0-9_\-]{1,100}$")
 
 class AnalyzeRequest(BaseModel):
     ingredients_text: str = Field(..., min_length=1, max_length=8000)
+    product_name:     str = Field(..., min_length=1, max_length=200)
 
 class OcrRequest(BaseModel):
     image_base64: str
@@ -260,9 +261,9 @@ def analyze_ingredients(request: Request, body: AnalyzeRequest, current_user: di
         raise HTTPException(status_code=400, detail="Could not parse any ingredients from the text.")
 
     result = analyze(ingredients, df, groq_client)
-    _log_scan(current_user["id"], "manual", None, result)
+    _log_scan(current_user["id"], "manual", body.product_name, result)
 
-    return {"error": None, "product": None, "analysis": result}
+    return {"error": None, "product": body.product_name, "analysis": result}
 
 
 def _compute_compare_score(analysis: dict) -> float:

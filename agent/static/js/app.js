@@ -326,20 +326,22 @@ function showOcrError(msg) {
 
 // ── Analyze flow ─────────────────────────────────────────────────────────────
 async function handlePasteAnalyze() {
-  const text = document.getElementById('paste-input').value.trim();
+  const text        = document.getElementById('paste-input').value.trim();
+  const productName = document.getElementById('product-name-input').value.trim();
   if (!text) { alert('Please paste an ingredient list or upload a photo.'); return; }
+  if (!productName) { alert('Please enter the product name.'); return; }
   showLoading('analyze', 'Analyzing...', 'Checking ingredients against<br>15 toxicant categories and<br>peer-reviewed research');
   try {
     await getToken();
     const res  = await fetch(`${API_BASE}/analyze`, {
       method: 'POST',
       headers: authHeaders(),
-      body: JSON.stringify({ ingredients_text: text }),
+      body: JSON.stringify({ ingredients_text: text, product_name: productName }),
     });
     if (res.status === 401) { _handle401(); return; }
     const data = await res.json();
-    addToHistory(null, data.analysis);
-    renderResults(null, data.analysis);
+    addToHistory(productName, data.analysis);
+    renderResults(productName, data.analysis);
   } catch (e) {
     showError('Network error. Make sure the server is running.');
   }
