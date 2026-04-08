@@ -578,6 +578,7 @@ function removeCompareSlot(idx) {
 
 function updateSlotName(idx, value) {
   if (compareSlots[idx]) compareSlots[idx].name = value;
+  updateCompareBtn();
 }
 
 function renderCompareSlots() {
@@ -599,7 +600,7 @@ function renderSlot(slot, idx) {
     <div class="compare-slot${has ? ' has-ingredients' : ''}" id="slot-${idx}">
       <div class="slot-header">
         <div class="slot-num">${idx + 1}</div>
-        <input class="slot-name-input" type="text" placeholder="Product name (optional)"
+        <input class="slot-name-input" type="text" placeholder="Product name"
           value="${escHtml(slot.name)}" oninput="updateSlotName(${idx}, this.value)"
           aria-label="Product ${idx + 1} name" autocomplete="off" />
         ${removeBtn}
@@ -695,24 +696,31 @@ async function handleComparePhoto(file) {
 }
 
 function updateCompareBtn() {
-  const filled = compareSlots.filter(s => s.ingredientsText.trim().length > 0).length;
+  const filledSlots = compareSlots.filter(s => s.ingredientsText.trim().length > 0);
+  const filled    = filledSlots.length;
+  const allNamed  = filledSlots.every(s => s.name.trim().length > 0);
   const btn  = document.getElementById('compare-btn');
   const hint = document.getElementById('compare-hint');
-  if (btn)  btn.disabled = filled < 2;
+  if (btn)  btn.disabled = filled < 2 || !allNamed;
   if (hint) hint.textContent = filled < 2
     ? `Add ingredients for at least 2 products (${filled} ready)`
+    : !allNamed
+    ? 'Please enter a product name for each product'
     : `${filled} product${filled > 1 ? 's' : ''} ready — tap Compare Now`;
 }
 
 async function runComparison() {
-  const products = compareSlots
-    .filter(s => s.ingredientsText.trim().length > 0)
-    .map((s, i) => ({
-      name: s.name.trim() || `Product ${i + 1}`,
-      ingredients_text: s.ingredientsText.trim(),
-    }));
-
-  if (products.length < 2) { alert('Please add ingredients for at least 2 products.'); return; }
+  const filledSlots = compareSlots.filter(s => s.ingredientsText.trim().length > 0);
+  if (filledSlots.length < 2) { alert('Please add ingredients for at least 2 products.'); return; }
+  const missingName = filledSlots.findIndex(s => !s.name.trim());
+  if (missingName !== -1) {
+    alert(`Please enter a product name for product ${missingName + 1}.`);
+    return;
+  }
+  const products = filledSlots.map(s => ({
+    name: s.name.trim(),
+    ingredients_text: s.ingredientsText.trim(),
+  }));
 
   showLoading('analyze', 'Comparing products…',
     `Analyzing ${products.length} products — this may take a minute`);
