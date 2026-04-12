@@ -25,6 +25,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from agent.auth.dependencies import get_current_user
 from agent.auth.supabase_client import get_supabase
 from agent.tools.analyze_ingredients import analyze, parse_ingredients_text
+from agent.tools.alternatives import PRODUCT_TYPES, get_alternatives
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 logger = logging.getLogger("cosmotox")
@@ -131,8 +132,16 @@ ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 WATCHLIST_KEY_RE   = _re.compile(r"^[a-zA-Z0-9_\-]{1,100}$")
 
 class AnalyzeRequest(BaseModel):
-    ingredients_text: str = Field(..., min_length=1, max_length=8000)
-    product_name:     str = Field(..., min_length=1, max_length=200)
+    ingredients_text: str      = Field(..., min_length=1, max_length=8000)
+    product_name:     str      = Field(..., min_length=1, max_length=200)
+    product_type:     str | None = Field(None, max_length=50)
+
+    @field_validator("product_type")
+    @classmethod
+    def check_product_type(cls, v: str | None) -> str | None:
+        if v is not None and v not in PRODUCT_TYPES:
+            raise ValueError(f"product_type must be one of: {', '.join(PRODUCT_TYPES)}")
+        return v
 
 class OcrRequest(BaseModel):
     image_base64: str
@@ -262,6 +271,9 @@ def analyze_ingredients(request: Request, body: AnalyzeRequest, current_user: di
 
     result = analyze(ingredients, df, groq_client)
     _log_scan(current_user["id"], "manual", body.product_name, result)
+
+    detected_keys = [t["toxicant_key"] for t in result.get("detected_toxicants", [])]
+    result["alternatives"] = get_alternatives(body.product_type, detected_keys)
 
     return {"error": None, "product": body.product_name, "analysis": result}
 

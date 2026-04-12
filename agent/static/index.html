@@ -114,6 +114,24 @@
         />
       </div>
 
+      <div class="product-type-wrap">
+        <label class="section-label">
+          Product type <span class="label-optional">(optional)</span>
+        </label>
+        <div class="product-type-chips" id="product-type-chips" role="group" aria-label="Select product type">
+          <button class="type-chip" data-type="moisturizer"         onclick="selectProductType(this)" type="button">Moisturizer</button>
+          <button class="type-chip" data-type="shampoo_conditioner" onclick="selectProductType(this)" type="button">Shampoo / Conditioner</button>
+          <button class="type-chip" data-type="sunscreen"           onclick="selectProductType(this)" type="button">Sunscreen</button>
+          <button class="type-chip" data-type="body_wash"           onclick="selectProductType(this)" type="button">Body Wash</button>
+          <button class="type-chip" data-type="foundation"          onclick="selectProductType(this)" type="button">Foundation</button>
+          <button class="type-chip" data-type="lip_product"         onclick="selectProductType(this)" type="button">Lip Product</button>
+          <button class="type-chip" data-type="eye_makeup"          onclick="selectProductType(this)" type="button">Eye Makeup</button>
+          <button class="type-chip" data-type="deodorant"           onclick="selectProductType(this)" type="button">Deodorant</button>
+          <button class="type-chip" data-type="serum_toner"         onclick="selectProductType(this)" type="button">Serum / Toner</button>
+          <button class="type-chip" data-type="baby_product"        onclick="selectProductType(this)" type="button">Baby Product</button>
+        </div>
+      </div>
+
       <div class="analyze-wrap">
         <button class="btn btn-primary btn-full" onclick="handlePasteAnalyze()">
           Analyze Ingredients

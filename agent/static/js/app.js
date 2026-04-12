@@ -3,6 +3,18 @@ const API_BASE = window.location.origin;
 // ── Supabase auth ────────────────────────────────────────────────────────────
 const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let _session = null;
+let _selectedProductType = null;
+
+function selectProductType(btn) {
+  const wasActive = btn.classList.contains('active');
+  document.querySelectorAll('.type-chip').forEach(c => c.classList.remove('active'));
+  if (!wasActive) {
+    btn.classList.add('active');
+    _selectedProductType = btn.dataset.type;
+  } else {
+    _selectedProductType = null;
+  }
+}
 
 async function getToken() {
   const { data } = await _supabase.auth.getSession();
@@ -336,7 +348,7 @@ async function handlePasteAnalyze() {
     const res  = await fetch(`${API_BASE}/analyze`, {
       method: 'POST',
       headers: authHeaders(),
-      body: JSON.stringify({ ingredients_text: text, product_name: productName }),
+      body: JSON.stringify({ ingredients_text: text, product_name: productName, product_type: _selectedProductType }),
     });
     if (res.status === 401) { _handle401(); return; }
     const data = await res.json();
@@ -488,7 +500,60 @@ function renderResults(label, analysis) {
       </div>`;
   }
 
+  if (analysis && analysis.alternatives && analysis.alternatives.length > 0) {
+    renderAlternatives(analysis.alternatives, analysis.detected_toxicants || []);
+  }
+
   showScreen('results');
+}
+
+function renderAlternatives(alternatives, detected) {
+  const toxDiv = document.getElementById('result-toxicants');
+  if (!toxDiv || !alternatives || alternatives.length === 0) return;
+
+  const SHORT_LABELS = {
+    parabens: 'Parabens', phthalates: 'Phthalates', pfas: 'PFAS',
+    benzophenones: 'Benzophenones', siloxanes: 'Siloxanes', fragrance: 'Fragrance',
+    toluene: 'Toluene', formaldehyde_releasers: 'Formaldehyde',
+    heavy_metals: 'Heavy Metals', hydroquinone: 'Hydroquinone',
+    ethanolamines: 'Ethanolamines', bha_bht: 'BHA/BHT',
+    coal_tar: 'Coal Tar', triclosan: 'Triclosan', dioxane: '1,4-Dioxane',
+  };
+  const detectedKeys = new Set((detected || []).map(t => t.toxicant_key));
+
+  const itemsHtml = alternatives.map(alt => {
+    const relevantAvoids = (alt.avoids || []).filter(k => detectedKeys.has(k));
+    const avoidTags = relevantAvoids.map(k =>
+      `<span class="alt-avoids-tag">${escHtml(SHORT_LABELS[k] || k)}</span>`
+    ).join('');
+    const externalIcon = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+    const amazonBtn = alt.amazon_url
+      ? `<a class="alt-buy-btn alt-buy-amazon" href="${escHtml(alt.amazon_url)}" target="_blank" rel="noopener noreferrer" aria-label="Buy ${escHtml(alt.brand)} ${escHtml(alt.name)} on Amazon">${externalIcon}Amazon</a>` : '';
+    const flipkartBtn = alt.flipkart_url
+      ? `<a class="alt-buy-btn alt-buy-flipkart" href="${escHtml(alt.flipkart_url)}" target="_blank" rel="noopener noreferrer" aria-label="Buy ${escHtml(alt.brand)} ${escHtml(alt.name)} on Flipkart">${externalIcon}Flipkart</a>` : '';
+    return `
+      <div class="alternative-item">
+        <div class="alt-info">
+          <div class="alt-brand">${escHtml(alt.brand)}</div>
+          <div class="alt-name">${escHtml(alt.name)}</div>
+          ${relevantAvoids.length > 0 ? `<div class="alt-avoids-row">${avoidTags}</div>` : ''}
+        </div>
+        <div class="alt-actions">${amazonBtn}${flipkartBtn}</div>
+      </div>`;
+  }).join('');
+
+  const card = document.createElement('div');
+  card.className = 'alternatives-section';
+  card.innerHTML = `
+    <div class="alternatives-card">
+      <div class="alternatives-header">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        <span>Safer Alternatives</span>
+      </div>
+      <p class="alternatives-sub">Engine-verified products that avoid the flagged ingredient${detectedKeys.size === 1 ? '' : 's'} above</p>
+      <div class="alternatives-list">${itemsHtml}</div>
+    </div>`;
+  toxDiv.appendChild(card);
 }
 
 function scrollToCard(id) {
