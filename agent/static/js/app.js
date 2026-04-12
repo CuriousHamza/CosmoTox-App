@@ -379,6 +379,7 @@ function renderResults(label, analysis) {
 
   document.getElementById('result-product-name').textContent = _currentResultLabel;
   document.getElementById('result-brand').textContent = '';
+  document.getElementById('result-alternatives').innerHTML = '';
 
   // ── Share / copy action buttons (Feature 4)
   const canShare = typeof navigator.share === 'function';
@@ -500,16 +501,27 @@ function renderResults(label, analysis) {
       </div>`;
   }
 
+  const altDiv = document.getElementById('result-alternatives');
+  const detected_toxicants = analysis && analysis.detected_toxicants || [];
   if (analysis && analysis.alternatives && analysis.alternatives.length > 0) {
-    renderAlternatives(analysis.alternatives, analysis.detected_toxicants || []);
+    renderAlternatives(analysis.alternatives, detected_toxicants);
+  } else if (detected_toxicants.length > 0 && !_selectedProductType) {
+    // User found toxicants but didn't pick a product type — show nudge
+    altDiv.innerHTML = `
+      <div class="alt-nudge">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span>Select a <strong>Product Type</strong> on the scan screen to see verified safer alternatives</span>
+      </div>`;
   }
 
   showScreen('results');
 }
 
 function renderAlternatives(alternatives, detected) {
-  const toxDiv = document.getElementById('result-toxicants');
-  if (!toxDiv || !alternatives || alternatives.length === 0) return;
+  const altDiv = document.getElementById('result-alternatives');
+  if (!altDiv || !alternatives || alternatives.length === 0) return;
 
   const SHORT_LABELS = {
     parabens: 'Parabens', phthalates: 'Phthalates', pfas: 'PFAS',
@@ -553,7 +565,7 @@ function renderAlternatives(alternatives, detected) {
       <p class="alternatives-sub">Engine-verified products that avoid the flagged ingredient${detectedKeys.size === 1 ? '' : 's'} above</p>
       <div class="alternatives-list">${itemsHtml}</div>
     </div>`;
-  toxDiv.appendChild(card);
+  altDiv.appendChild(card);
 }
 
 function scrollToCard(id) {
