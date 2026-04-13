@@ -201,6 +201,35 @@ def _log_scan(user_id: str, scan_type: str, product_name: str | None,
     except Exception as e:
         logger.warning(f"scan_history log failed (non-fatal): {e}")
 
+# ── AI product type detection ─────────────────────────────────────────────────
+def detect_product_type(ingredients_text: str, product_name: str, groq_client) -> "str | None":
+    """
+    Ask Groq to classify the product type from ingredients + product name.
+    Returns one of the 10 PRODUCT_TYPES keys, or None if uncertain.
+    """
+    valid = PRODUCT_TYPES
+    prompt = (
+        "You are a cosmetic product classifier. Identify the product type.\n\n"
+        f"Product name: {product_name or 'Unknown'}\n"
+        f"Ingredients (first 500 chars): {ingredients_text[:500]}\n\n"
+        f"Choose exactly ONE of these types: {', '.join(valid)}\n"
+        "If you cannot determine the type, respond: unknown\n"
+        "Respond with ONLY the product type key, nothing else."
+    )
+    try:
+        resp = groq_client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=20,
+            temperature=0,
+        )
+        detected = resp.choices[0].message.content.strip().lower()
+        return detected if detected in valid else None
+    except Exception as e:
+        logger.warning(f"detect_product_type failed (non-fatal): {e}")
+        return None
+
+
 # ── Public endpoints ──────────────────────────────────────────────────────────
 
 @app.get("/")
@@ -272,8 +301,12 @@ def analyze_ingredients(request: Request, body: AnalyzeRequest, current_user: di
     result = analyze(ingredients, df, groq_client)
     _log_scan(current_user["id"], "manual", body.product_name, result)
 
+    effective_type = body.product_type or detect_product_type(
+        body.ingredients_text, body.product_name, groq_client
+    )
     detected_keys = [t["toxicant_key"] for t in result.get("detected_toxicants", [])]
-    result["alternatives"] = get_alternatives(body.product_type, detected_keys)
+    result["alternatives"]          = get_alternatives(effective_type, detected_keys)
+    result["detected_product_type"] = effective_type
 
     return {"error": None, "product": body.product_name, "analysis": result}
 

@@ -8,12 +8,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css?v=7" />
+  <link rel="stylesheet" href="/static/css/style.css?v=8" />
   <!-- Supabase JS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"
           integrity="sha384-2zrRDgDHSYB/GN3nFW3fsZXoxEhKIr3N2h63Tc6DEOB9JJdFIu8xMJT2Cph/gBil"
           crossorigin="anonymous"></script>
-  <script src="/static/js/config.js?v=7"></script>
+  <script src="/static/js/config.js?v=8"></script>
 </head>
 <body>
 <div class="app">
@@ -116,7 +116,7 @@
 
       <div class="product-type-wrap">
         <label class="section-label">
-          Product type <span class="label-optional">(optional)</span>
+          Product type <span class="label-optional">(auto-detected)</span>
         </label>
         <div class="product-type-chips" id="product-type-chips" role="group" aria-label="Select product type">
           <button class="type-chip" data-type="moisturizer"         onclick="selectProductType(this)" type="button">Moisturizer</button>
@@ -130,7 +130,7 @@
           <button class="type-chip" data-type="serum_toner"         onclick="selectProductType(this)" type="button">Serum / Toner</button>
           <button class="type-chip" data-type="baby_product"        onclick="selectProductType(this)" type="button">Baby Product</button>
         </div>
-        <p class="product-type-hint">Select a category to see verified safer alternatives in your results</p>
+        <p class="product-type-hint">AI will detect the type automatically — or tap a chip to override</p>
       </div>
 
       <div class="analyze-wrap">
@@ -415,6 +415,6 @@
 <!-- Toast notification -->
 <div id="toast"></div>
 
-<script src="/static/js/app.js?v=7"></script>
+<script src="/static/js/app.js?v=8"></script>
 </body>
 </html>

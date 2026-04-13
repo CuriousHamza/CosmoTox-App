@@ -234,11 +234,19 @@ const history = (() => {
   catch(e) { return []; }
 })();
 
-function addToHistory(label, analysis) {
-  const name    = label || 'Pasted Ingredients';
-  const verdict = analysis ? analysis.verdict : 'clean';
-  const dotCls  = VERDICT_DOT[verdict] || 'green';
-  history.unshift({ name, dotCls, analysis });
+function addToHistory(entryOrLabel, analysis) {
+  let entry;
+  if (typeof entryOrLabel === 'object' && entryOrLabel !== null && entryOrLabel.type) {
+    // New-style: full entry object passed directly (e.g. compare entries)
+    entry = entryOrLabel;
+  } else {
+    // Legacy call: addToHistory(label, analysis)
+    const name    = entryOrLabel || 'Pasted Ingredients';
+    const verdict = analysis ? analysis.verdict : 'clean';
+    const dotCls  = VERDICT_DOT[verdict] || 'green';
+    entry = { type: 'scan', name, dotCls, analysis };
+  }
+  history.unshift(entry);
   if (history.length > MAX_HISTORY) history.pop();
   try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch(e) {}
   renderHistory();
@@ -255,18 +263,36 @@ function renderHistory() {
   const chips   = document.getElementById('history-chips');
   if (!history.length) { section.style.display = 'none'; return; }
   section.style.display = 'block';
-  chips.innerHTML = history.map((h, i) => `
-    <div class="history-chip" onclick="showHistoryItem(${i})" role="button" tabindex="0"
-         onkeydown="if(event.key==='Enter')showHistoryItem(${i})">
-      <div class="chip-name">${escHtml(h.name)}</div>
-      <div class="chip-dot ${h.dotCls}"></div>
-    </div>
-  `).join('');
+  chips.innerHTML = history.map((h, i) => {
+    if (h.type === 'compare') {
+      const others = h.names.filter(n => n !== h.winner);
+      const label  = others.length === 1
+        ? `${h.winner} vs ${others[0]}`
+        : `${h.winner} \u00b7 ${h.names.length} products`;
+      return `
+        <div class="history-chip history-chip--compare" onclick="showHistoryItem(${i})" role="button" tabindex="0"
+             onkeydown="if(event.key==='Enter')showHistoryItem(${i})">
+          <div class="chip-name"><span class="chip-trophy">&#127942;</span>${escHtml(label)}</div>
+          <div class="chip-dot ${h.dotCls}"></div>
+        </div>`;
+    }
+    return `
+      <div class="history-chip" onclick="showHistoryItem(${i})" role="button" tabindex="0"
+           onkeydown="if(event.key==='Enter')showHistoryItem(${i})">
+        <div class="chip-name">${escHtml(h.name)}</div>
+        <div class="chip-dot ${h.dotCls}"></div>
+      </div>`;
+  }).join('');
 }
 
 function showHistoryItem(i) {
   const item = history[i];
-  renderResults(item.name, item.analysis);
+  if (!item) return;
+  if (item.type === 'compare') {
+    renderCompareResults(item.compareData);
+  } else {
+    renderResults(item.name, item.analysis);
+  }
 }
 
 // ── OCR photo flow ──────────────────────────────────────────────────────────
@@ -353,6 +379,16 @@ async function handlePasteAnalyze() {
     if (res.status === 401) { _handle401(); return; }
     const data = await res.json();
     addToHistory(productName, data.analysis);
+
+    // Auto-highlight the AI-detected chip (only if user didn't manually select one)
+    const detectedType = data.analysis && data.analysis.detected_product_type;
+    if (detectedType && !_selectedProductType) {
+      document.querySelectorAll('.type-chip').forEach(c => {
+        c.classList.toggle('active', c.dataset.type === detectedType);
+      });
+      _selectedProductType = detectedType;
+    }
+
     renderResults(productName, data.analysis);
   } catch (e) {
     showError('Network error. Make sure the server is running.');
@@ -505,8 +541,8 @@ function renderResults(label, analysis) {
   const detected_toxicants = analysis && analysis.detected_toxicants || [];
   if (analysis && analysis.alternatives && analysis.alternatives.length > 0) {
     renderAlternatives(analysis.alternatives, detected_toxicants);
-  } else if (detected_toxicants.length > 0 && !_selectedProductType) {
-    // User found toxicants but didn't pick a product type — show nudge
+  } else if (detected_toxicants.length > 0 && !_selectedProductType && !(analysis && analysis.detected_product_type)) {
+    // Toxicants found but neither manual selection nor AI detection produced a type — show nudge
     altDiv.innerHTML = `
       <div class="alt-nudge">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -819,6 +855,18 @@ async function runComparison() {
     }
 
     const data = await res.json();
+
+    // Save compare result to history as a single entry
+    const winVerdict = data.recommendation?.winner_verdict || 'clean';
+    const winDotCls  = winVerdict === 'concerning' ? 'red' : winVerdict === 'caution' ? 'amber' : 'green';
+    addToHistory({
+      type:        'compare',
+      names:       data.results.map(r => r.name),
+      winner:      data.recommendation.winner_name,
+      dotCls:      winDotCls,
+      compareData: { results: data.results, recommendation: data.recommendation },
+    });
+
     renderCompareResults(data);
   } catch (e) {
     showScreen('compare');
