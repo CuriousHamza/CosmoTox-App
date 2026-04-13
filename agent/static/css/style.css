@@ -1165,31 +1165,32 @@
 
   /* ── Product type chip selector ─────────────────────────────────────── */
   .product-type-wrap { margin-top: 16px; }
-  .label-optional { color: var(--text-muted); opacity: 0.5; font-weight: 400; text-transform: none; letter-spacing: 0; font-size: 0.8em; }
-  .product-type-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
-  .product-type-hint { font-size: 0.71rem; color: var(--text-muted); opacity: 0.65; margin-top: 7px; line-height: 1.4; }
+  .label-optional { color: var(--accent); opacity: 0.6; font-weight: 400; text-transform: none; letter-spacing: 0; font-size: 0.8em; }
+  .product-type-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+  .product-type-hint { font-size: 0.71rem; color: var(--accent); opacity: 0.55; margin-top: 8px; line-height: 1.4; }
   .type-chip {
     display: inline-flex; align-items: center;
-    background: var(--surface-2);
-    border: 1px solid rgba(45,212,191,0.28);
-    border-radius: 20px; padding: 6px 13px;
+    background: rgba(45,212,191,0.07);
+    border: 1.5px solid rgba(45,212,191,0.35);
+    border-radius: 20px; padding: 6px 14px;
     font-family: 'Outfit', sans-serif; font-size: 0.78rem; font-weight: 600;
-    color: rgba(226,232,240,0.65); cursor: pointer; touch-action: manipulation;
+    color: rgba(45,212,191,0.8); cursor: pointer; touch-action: manipulation;
     white-space: nowrap; min-height: 34px;
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    transition: border-color 0.15s, color 0.15s, background 0.15s, box-shadow 0.15s;
   }
   .type-chip:hover {
-    border-color: rgba(45,212,191,0.6);
-    background: rgba(45,212,191,0.08);
-    color: var(--text);
+    border-color: rgba(45,212,191,0.7);
+    background: rgba(45,212,191,0.13);
+    color: var(--accent);
+    box-shadow: 0 0 10px rgba(45,212,191,0.12);
   }
   .type-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .type-chip:active { transform: scale(0.95); }
   .type-chip.active {
-    background: rgba(45,212,191,0.14);
+    background: rgba(45,212,191,0.18);
     border-color: var(--accent);
     color: var(--accent);
-    box-shadow: 0 0 0 1px rgba(45,212,191,0.18);
+    box-shadow: 0 0 0 1px rgba(45,212,191,0.25), 0 0 14px rgba(45,212,191,0.15);
   }
 
   /* ── Safer Alternatives nudge (no product type selected) ──────────────── */
