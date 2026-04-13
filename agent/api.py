@@ -204,17 +204,51 @@ def _log_scan(user_id: str, scan_type: str, product_name: str | None,
 # ── AI product type detection ─────────────────────────────────────────────────
 def detect_product_type(ingredients_text: str, product_name: str, groq_client) -> "str | None":
     """
-    Ask Groq to classify the product type from ingredients + product name.
-    Returns one of the 10 PRODUCT_TYPES keys, or None if uncertain.
+    Classify product type. Tries keyword heuristics on the product name first,
+    then falls back to Groq LLM with per-type descriptions.
     """
-    valid = PRODUCT_TYPES
+    # ── Layer 1: keyword heuristics on product name ───────────────────────────
+    name_lower = (product_name or "").lower()
+    KEYWORD_MAP = [
+        ("moisturizer",         ["moisturizer", "moisturising", "moisturizing", "face cream",
+                                  "day cream", "night cream", "hydrating cream", "barrier cream",
+                                  "face lotion", "facial cream", "facial lotion"]),
+        ("serum_toner",         ["serum", "toner", "essence", "face mist", "facial mist"]),
+        ("shampoo_conditioner", ["shampoo", "conditioner", "hair mask", "hair wash"]),
+        ("sunscreen",           ["sunscreen", "sunblock", "spf", "sun protection", "uv protection"]),
+        ("body_wash",           ["body wash", "shower gel", "bath gel", "body cleanser"]),
+        ("foundation",          ["foundation", "bb cream", "cc cream", "tinted moisturizer", "concealer"]),
+        ("lip_product",         ["lip", "lipstick", "lip gloss", "lip balm", "lip liner"]),
+        ("eye_makeup",          ["eye", "mascara", "eyeliner", "eyeshadow", "eye cream", "eye serum"]),
+        ("deodorant",           ["deodorant", "antiperspirant", "deo"]),
+        ("baby_product",        ["baby", "infant", "kids", "children"]),
+    ]
+    for ptype, keywords in KEYWORD_MAP:
+        if any(kw in name_lower for kw in keywords):
+            return ptype
+
+    # ── Layer 2: LLM fallback with descriptions ───────────────────────────────
+    type_descriptions = {
+        "moisturizer":         "Leave-on cream or lotion that hydrates face/body. Often thick/rich.",
+        "serum_toner":         "Lightweight liquid applied before moisturizer. Thin, fast-absorbing.",
+        "shampoo_conditioner": "Rinse-off product for hair cleansing or conditioning.",
+        "sunscreen":           "Product with UV filters (SPF). Sun protection focus.",
+        "body_wash":           "Rinse-off liquid soap or gel for body/shower use.",
+        "foundation":          "Face makeup for coverage (foundation, BB/CC cream, concealer).",
+        "lip_product":         "Product applied to lips (lipstick, gloss, balm, liner).",
+        "eye_makeup":          "Product for eye area (mascara, eyeliner, eyeshadow, eye cream).",
+        "deodorant":           "Underarm product for odour or sweat control.",
+        "baby_product":        "Formulated for infants or young children.",
+    }
+    descriptions_block = "\n".join(f"  {k}: {v}" for k, v in type_descriptions.items())
     prompt = (
-        "You are a cosmetic product classifier. Identify the product type.\n\n"
+        "You are a cosmetic product classifier.\n\n"
         f"Product name: {product_name or 'Unknown'}\n"
         f"Ingredients (first 500 chars): {ingredients_text[:500]}\n\n"
-        f"Choose exactly ONE of these types: {', '.join(valid)}\n"
+        "Choose exactly ONE type from the list below.\n"
+        f"{descriptions_block}\n\n"
         "If you cannot determine the type, respond: unknown\n"
-        "Respond with ONLY the product type key, nothing else."
+        "Respond with ONLY the type key (e.g. moisturizer), nothing else."
     )
     try:
         resp = groq_client.chat.completions.create(
@@ -224,7 +258,7 @@ def detect_product_type(ingredients_text: str, product_name: str, groq_client) -
             temperature=0,
         )
         detected = resp.choices[0].message.content.strip().lower()
-        return detected if detected in valid else None
+        return detected if detected in PRODUCT_TYPES else None
     except Exception as e:
         logger.warning(f"detect_product_type failed (non-fatal): {e}")
         return None
