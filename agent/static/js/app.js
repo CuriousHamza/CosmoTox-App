@@ -5,6 +5,30 @@ const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let _session = null;
 let _selectedProductType = null;
 
+// ── Skin type ─────────────────────────────────────────────────────────────────
+const SKIN_TYPE_KEY = 'cosmo_skin_type';
+let _skinType = localStorage.getItem(SKIN_TYPE_KEY) || null;
+
+function selectSkinType(btn) {
+  const wasActive = btn.classList.contains('active');
+  document.querySelectorAll('.skin-chip').forEach(c => c.classList.remove('active'));
+  if (!wasActive) {
+    btn.classList.add('active');
+    _skinType = btn.dataset.type;
+    localStorage.setItem(SKIN_TYPE_KEY, _skinType);
+  } else {
+    _skinType = null;
+    localStorage.removeItem(SKIN_TYPE_KEY);
+  }
+}
+
+function _initSkinTypeChips() {
+  if (!_skinType) return;
+  document.querySelectorAll('.skin-chip').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.type === _skinType);
+  });
+}
+
 function selectProductType(btn) {
   const wasActive = btn.classList.contains('active');
   document.querySelectorAll('.type-chip').forEach(c => c.classList.remove('active'));
@@ -111,6 +135,7 @@ function _onSignedIn() {
   document.getElementById('logout-btn').style.display = 'flex';
   document.getElementById('history-btn').style.display = 'flex';
   _loadWatchlistFromApi();
+  _initSkinTypeChips();
   showScreen('home');
 }
 
@@ -490,7 +515,7 @@ async function handlePasteAnalyze() {
     const res  = await fetch(`${API_BASE}/analyze`, {
       method: 'POST',
       headers: authHeaders(),
-      body: JSON.stringify({ ingredients_text: text, product_name: productName, product_type: _selectedProductType }),
+      body: JSON.stringify({ ingredients_text: text, product_name: productName, product_type: _selectedProductType, skin_type: _skinType || undefined }),
     });
     if (res.status === 401) { _handle401(); return; }
     const data = await res.json();
@@ -713,7 +738,7 @@ function renderAlternatives(alternatives, detected) {
           <div class="alt-brand">${escHtml(alt.brand)}</div>
           <div class="alt-name">${escHtml(alt.name)}</div>
           ${comparisonHtml}
-          ${relevantAvoids.length > 0 ? `<div class="alt-avoids-row">${avoidTags}</div>` : ''}
+          ${relevantAvoids.length > 0 ? `<div class="alt-why">Avoids ${relevantAvoids.length} thing${relevantAvoids.length !== 1 ? 's' : ''} found in yours</div><div class="alt-avoids-row">${avoidTags}</div>` : ''}
         </div>
         <div class="alt-actions">${amazonBtn}${flipkartBtn}</div>
       </div>`;
@@ -755,6 +780,8 @@ function renderToxicantCard(t, idx) {
     : '<li>Not specified</li>';
   const summary = t.llm_summary
     ? `<div class="llm-summary">${escHtml(t.llm_summary)}</div>` : '';
+  const skinNote = t.skin_note
+    ? `<div class="tox-skin-note">${escHtml(t.skin_note)}</div>` : '';
   const matched   = (t.matched_ingredients || []).map(i => escHtml(i)).join(', ');
   const tier      = t.tier || 'high';
   const badge     = TIER_BADGE[tier] || TIER_BADGE.high;
@@ -783,6 +810,7 @@ function renderToxicantCard(t, idx) {
           </div>
         </div>
         ${summary}
+        ${skinNote}
       </div>
     </details>
   `;
@@ -793,6 +821,74 @@ function escHtml(str) {
   return String(str)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Barcode scanner ──────────────────────────────────────────────────────────
+let _barcodeReader = null;
+
+async function openBarcodeScanner() {
+  const modal     = document.getElementById('barcode-modal');
+  const statusEl  = document.getElementById('barcode-status');
+  const videoEl   = document.getElementById('barcode-video');
+  modal.style.display = 'flex';
+  statusEl.textContent = 'Starting camera…';
+
+  // ZXing loads asynchronously via defer — check it's ready
+  if (typeof ZXingBrowser === 'undefined') {
+    statusEl.textContent = 'Scanner not loaded. Please refresh and try again.';
+    return;
+  }
+
+  try {
+    _barcodeReader = new ZXingBrowser.BrowserMultiFormatReader();
+    await _barcodeReader.decodeFromVideoDevice(undefined, videoEl, (result, err) => {
+      if (result) {
+        const code = result.getText();
+        closeBarcodeScanner();
+        lookupOpenBeautyFacts(code);
+      }
+      // err fires on every frame with no barcode — ignore
+    });
+    statusEl.textContent = 'Scanning…';
+  } catch (e) {
+    statusEl.textContent = 'Camera unavailable. Please paste ingredients manually.';
+  }
+}
+
+function closeBarcodeScanner() {
+  if (_barcodeReader) { try { _barcodeReader.reset(); } catch(e) {} _barcodeReader = null; }
+  const modal = document.getElementById('barcode-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function lookupOpenBeautyFacts(barcode) {
+  showLoading('analyze', 'Looking up barcode…', 'Searching Open Beauty Facts database');
+  try {
+    const res  = await fetch(`https://world.openbeautyfacts.org/api/v0/product/${encodeURIComponent(barcode)}.json`);
+    const data = await res.json();
+
+    if (data.status !== 1 || !data.product) {
+      showScreen('home');
+      alert('Product not found in the database. Please paste the ingredients manually.');
+      return;
+    }
+
+    const p           = data.product;
+    const ingredients = p.ingredients_text_en || p.ingredients_text || '';
+    const name        = p.product_name || '';
+
+    showScreen('home');
+    document.getElementById('paste-input').value        = ingredients;
+    document.getElementById('product-name-input').value = name;
+
+    if (ingredients.trim()) {
+      // Auto-trigger analysis now that fields are filled
+      handlePasteAnalyze();
+    }
+  } catch (e) {
+    showScreen('home');
+    alert('Could not reach the product database. Please check your connection.');
+  }
 }
 
 // ── Compare flow ─────────────────────────────────────────────────────────────

@@ -71,14 +71,14 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"]   = "nosniff"
         response.headers["X-Frame-Options"]           = "DENY"
         response.headers["Referrer-Policy"]           = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"]        = "camera=(), microphone=(), geolocation=()"
+        response.headers["Permissions-Policy"]        = "camera=(self), microphone=(), geolocation=()"
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         response.headers["Content-Security-Policy"]   = (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
             "style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; "
             "font-src https://fonts.gstatic.com; "
-            "connect-src 'self' https://*.supabase.co; "
+            "connect-src 'self' https://*.supabase.co https://world.openbeautyfacts.org; "
             "img-src 'self' data: blob:; "
             "frame-ancestors 'none';"
         )
@@ -131,16 +131,26 @@ if os.path.exists(static_dir):
 ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 WATCHLIST_KEY_RE   = _re.compile(r"^[a-zA-Z0-9_\-]{1,100}$")
 
+VALID_SKIN_TYPES = {"oily", "dry", "sensitive", "combination"}
+
 class AnalyzeRequest(BaseModel):
     ingredients_text: str      = Field(..., min_length=1, max_length=8000)
     product_name:     str      = Field(..., min_length=1, max_length=200)
     product_type:     str | None = Field(None, max_length=50)
+    skin_type:        str | None = Field(None, max_length=20)
 
     @field_validator("product_type")
     @classmethod
     def check_product_type(cls, v: str | None) -> str | None:
         if v is not None and v not in PRODUCT_TYPES:
             raise ValueError(f"product_type must be one of: {', '.join(PRODUCT_TYPES)}")
+        return v
+
+    @field_validator("skin_type")
+    @classmethod
+    def check_skin_type(cls, v: str | None) -> str | None:
+        if v is not None and v not in VALID_SKIN_TYPES:
+            raise ValueError(f"skin_type must be one of: {', '.join(VALID_SKIN_TYPES)}")
         return v
 
 class OcrRequest(BaseModel):
@@ -332,7 +342,7 @@ def analyze_ingredients(request: Request, body: AnalyzeRequest, current_user: di
     if not ingredients:
         raise HTTPException(status_code=400, detail="Could not parse any ingredients from the text.")
 
-    result = analyze(ingredients, df, groq_client)
+    result = analyze(ingredients, df, groq_client, skin_type=body.skin_type)
     _log_scan(current_user["id"], "manual", body.product_name, result)
 
     effective_type = body.product_type or detect_product_type(

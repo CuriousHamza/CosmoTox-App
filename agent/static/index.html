@@ -2,18 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co; img-src 'self' data: blob:;" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co https://world.openbeautyfacts.org; img-src 'self' data: blob:;" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>CosmoTox Scanner</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css?v=10" />
+  <link rel="stylesheet" href="/static/css/style.css?v=11" />
   <!-- Supabase JS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"
           integrity="sha384-2zrRDgDHSYB/GN3nFW3fsZXoxEhKIr3N2h63Tc6DEOB9JJdFIu8xMJT2Cph/gBil"
           crossorigin="anonymous"></script>
-  <script src="/static/js/config.js?v=10"></script>
+  <script src="/static/js/config.js?v=11"></script>
+  <!-- ZXing barcode scanner -->
+  <script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/index.min.js" defer></script>
 </head>
 <body>
 <div class="app">
@@ -79,6 +81,14 @@
         <button onclick="retryPhoto()">Try again</button>
       </div>
 
+      <button class="btn btn-secondary btn-full" onclick="openBarcodeScanner()" aria-label="Scan product barcode" style="margin-bottom:8px;">
+        <!-- Barcode icon -->
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 5v1M3 10v4M3 19v1M7 5v6M7 14v1M11 5v1M11 10v4M11 19v1M15 5v6M15 14v1M19 5v1M19 10v4M19 19v1"/>
+        </svg>
+        Scan Barcode
+      </button>
+
       <div class="divider"><span>or upload a photo of the label</span></div>
 
       <input type="file" id="photo-camera" accept="image/*" capture="environment" style="display:none;"
@@ -140,6 +150,18 @@
           <button class="type-chip" data-type="baby_product"        onclick="selectProductType(this)" type="button">Baby Product</button>
         </div>
         <p class="product-type-hint">AI will detect the type automatically — or tap a chip to override</p>
+      </div>
+
+      <div class="skin-type-wrap">
+        <label class="section-label">
+          Your skin type <span class="label-optional">(personalises results)</span>
+        </label>
+        <div class="skin-type-chips" id="skin-type-chips" role="group" aria-label="Select your skin type">
+          <button class="skin-chip" data-type="oily"        onclick="selectSkinType(this)" type="button">Oily</button>
+          <button class="skin-chip" data-type="dry"         onclick="selectSkinType(this)" type="button">Dry</button>
+          <button class="skin-chip" data-type="sensitive"   onclick="selectSkinType(this)" type="button">Sensitive</button>
+          <button class="skin-chip" data-type="combination" onclick="selectSkinType(this)" type="button">Combination</button>
+        </div>
       </div>
 
       <div class="analyze-wrap">
@@ -485,9 +507,24 @@
 
 </div>
 
+<!-- Barcode scanner modal -->
+<div id="barcode-modal" class="barcode-modal" style="display:none;" role="dialog" aria-label="Barcode scanner">
+  <div class="barcode-modal-inner">
+    <div class="barcode-header">
+      <span>Point camera at barcode</span>
+      <button class="barcode-close-btn" onclick="closeBarcodeScanner()" aria-label="Close scanner">✕</button>
+    </div>
+    <div class="barcode-viewfinder">
+      <video id="barcode-video" autoplay muted playsinline></video>
+      <div class="barcode-reticle"></div>
+    </div>
+    <div id="barcode-status" class="barcode-status">Starting camera…</div>
+  </div>
+</div>
+
 <!-- Toast notification -->
 <div id="toast"></div>
 
-<script src="/static/js/app.js?v=10"></script>
+<script src="/static/js/app.js?v=11"></script>
 </body>
 </html>

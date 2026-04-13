@@ -49,6 +49,33 @@ TIER_THRESHOLDS = {
     "low":    {"concerning": 50,  "caution": 10},
 }
 
+# Per-skin-type notes for specific toxicant categories.
+# Only shown when the user has selected a skin type AND the toxicant is in this map.
+SKIN_TYPE_WARNINGS: dict = {
+    "sensitive": {
+        "fragrance":              "Fragrance is the #1 trigger for contact dermatitis in sensitive skin.",
+        "formaldehyde_releasers": "Formaldehyde releasers are a common sensitiser — high risk for reactive skin.",
+        "ethanolamines":          "DEA/MEA/TEA can cause allergic reactions in sensitive skin types.",
+        "sodium_lauryl_sulfate":  "SLS disrupts the skin barrier — especially harsh on sensitive or eczema-prone skin.",
+        "parabens":               "Some sensitive skin types react to parabens with irritation or redness.",
+        "coal_tar":               "Coal tar is a known irritant and allergen — avoid on sensitive skin.",
+    },
+    "dry": {
+        "sodium_lauryl_sulfate":  "SLS strips natural oils — worsens dryness and tightens the skin barrier.",
+        "ethanolamines":          "Can be drying when used in leave-on products.",
+        "fragrance":              "Fragrant compounds can strip moisture from already dry skin.",
+        "bha_bht":                "High concentrations of BHA can have a drying effect on already dry skin.",
+    },
+    "oily": {
+        "phthalates":             "Some phthalates have been linked to hormonal disruption which may affect sebum production.",
+        "heavy_metals":           "Certain heavy metals can irritate pores and worsen sebaceous activity.",
+    },
+    "combination": {
+        "sodium_lauryl_sulfate":  "SLS can over-strip oils in dry zones while leaving oily zones congested.",
+        "fragrance":              "Fragrance can trigger irritation on the dry patches of combination skin.",
+    },
+}
+
 
 def match_toxicants(ingredients: list) -> dict:
     """
@@ -235,7 +262,7 @@ def compute_verdict(detected: list) -> str:
     return "clean"
 
 
-def analyze(ingredients: list, df: pd.DataFrame, groq_client) -> dict:
+def analyze(ingredients: list, df: pd.DataFrame, groq_client, skin_type: str | None = None) -> dict:
     """
     Main entry point. Runs the full pipeline.
 
@@ -279,6 +306,10 @@ def analyze(ingredients: list, df: pd.DataFrame, groq_client) -> dict:
             display_name, matched_ingredients, evidence, groq_client, tier=tier
         )
 
+        skin_note = ""
+        if skin_type and skin_type in SKIN_TYPE_WARNINGS:
+            skin_note = SKIN_TYPE_WARNINGS[skin_type].get(toxicant_key, "")
+
         detected.append({
             "toxicant_key": toxicant_key,
             "display_name": display_name,
@@ -291,6 +322,7 @@ def analyze(ingredients: list, df: pd.DataFrame, groq_client) -> dict:
             "top_organs": evidence["top_organs"],
             "sample_reasons": evidence["sample_reasons"],
             "llm_summary": llm_summary,
+            "skin_note": skin_note,
         })
 
     # Sort by paper count descending (most evidence first)
