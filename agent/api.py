@@ -438,3 +438,25 @@ def remove_watchlist(request: Request, key: str, body: WatchlistBody, current_us
     sb = get_supabase()
     sb.table("watchlist").delete().eq("user_id", current_user["id"]).eq("key", key).eq("watchlist_type", body.watchlist_type).execute()
     return {"ok": True}
+
+
+# ── History endpoint ──────────────────────────────────────────────────────────
+
+@app.get("/history")
+@limiter.limit("30/hour")
+def get_history(request: Request, current_user: dict = Depends(get_current_user)):
+    """Return the user's 50 most recent scans from Supabase scan_history."""
+    try:
+        sb = get_supabase()
+        resp = (
+            sb.table("scan_history")
+            .select("id, product_name, verdict, toxicant_count, paper_count, top_toxicants, scan_type, scanned_at")
+            .eq("user_id", current_user["id"])
+            .order("scanned_at", desc=True)
+            .limit(50)
+            .execute()
+        )
+        return {"error": None, "history": resp.data}
+    except Exception as e:
+        logger.warning(f"get_history failed: {e}")
+        raise HTTPException(status_code=500, detail="Could not load history.")

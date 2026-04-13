@@ -104,10 +104,12 @@ async function handleLogout() {
   _session = null;
   showScreen('login');
   document.getElementById('logout-btn').style.display = 'none';
+  document.getElementById('history-btn').style.display = 'none';
 }
 
 function _onSignedIn() {
   document.getElementById('logout-btn').style.display = 'flex';
+  document.getElementById('history-btn').style.display = 'flex';
   _loadWatchlistFromApi();
   showScreen('home');
 }
@@ -293,6 +295,120 @@ function showHistoryItem(i) {
   } else {
     renderResults(item.name, item.analysis);
   }
+}
+
+// ── Server-backed history screen ────────────────────────────────────────────
+let _historyData   = [];
+let _historyFilter = 'all';
+
+async function loadHistoryScreen() {
+  const rows    = document.getElementById('history-rows');
+  const loading = document.getElementById('history-loading');
+  const empty   = document.getElementById('history-empty');
+  rows.innerHTML        = '';
+  loading.style.display = 'block';
+  empty.style.display   = 'none';
+
+  try {
+    const res  = await fetch(`${API_BASE}/history`, { headers: authHeaders() });
+    const data = await res.json();
+    _historyData = data.history || [];
+  } catch(e) {
+    _historyData = [];
+  }
+
+  loading.style.display = 'none';
+  // Reset filter to "All" each time the screen opens
+  _historyFilter = 'all';
+  document.querySelectorAll('.hfilter').forEach(b => b.classList.toggle('active', b.dataset.verdict === 'all'));
+  renderHistoryTable();
+}
+
+function renderHistoryTable() {
+  const rows  = document.getElementById('history-rows');
+  const empty = document.getElementById('history-empty');
+  if (!rows) return;
+
+  const items = _historyFilter === 'all'
+    ? _historyData
+    : _historyData.filter(h => h.verdict === _historyFilter);
+
+  if (!items.length) {
+    rows.innerHTML        = '';
+    empty.style.display   = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  rows.innerHTML = items.map((h, i) => {
+    const date    = new Date(h.scanned_at);
+    const dateStr = date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' });
+    const timeStr = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    const name    = escHtml(h.product_name || 'Unknown Product');
+    const typeTag = h.scan_type === 'compare'
+      ? '<span class="htype-tag htype-compare">Compare</span>'
+      : '<span class="htype-tag htype-scan">Scan</span>';
+    const verdict = h.verdict || 'clean';
+
+    return `
+      <div class="htable-row verdict-border--${verdict}" onclick="showHistoryDetail(${i})" role="button" tabindex="0"
+           onkeydown="if(event.key==='Enter')showHistoryDetail(${i})">
+        <span class="htcol htcol-date">
+          <span class="hdate-day">${dateStr}</span>
+          <span class="hdate-time">${timeStr}</span>
+        </span>
+        <span class="htcol htcol-name">
+          <span class="hprod-name">${name}</span>
+          ${typeTag}
+        </span>
+        <span class="htcol htcol-verdict">
+          <span class="verdict-pill verdict-pill--${verdict}">${verdict}</span>
+        </span>
+        <span class="htcol htcol-count">${h.toxicant_count ?? 0}</span>
+      </div>`;
+  }).join('');
+}
+
+function filterHistory(btn) {
+  document.querySelectorAll('.hfilter').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  _historyFilter = btn.dataset.verdict;
+  renderHistoryTable();
+}
+
+function showHistoryDetail(idx) {
+  const items = _historyFilter === 'all'
+    ? _historyData
+    : _historyData.filter(h => h.verdict === _historyFilter);
+  const h = items[idx];
+  if (!h) return;
+
+  const date    = new Date(h.scanned_at).toLocaleString('en-IN', {
+    day: 'numeric', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
+  const verdict  = h.verdict || 'clean';
+  const toxCount = h.toxicant_count ?? 0;
+  const toxList  = (h.top_toxicants || []).map(k =>
+    `<span class="tox-tag">${escHtml(k.replace(/_/g, ' '))}</span>`
+  ).join('');
+
+  document.getElementById('history-detail-body').innerHTML = `
+    <div class="hdetail-card">
+      <div class="hdetail-name">${escHtml(h.product_name || 'Unknown Product')}</div>
+      <div class="hdetail-meta">${date}&nbsp;·&nbsp;${escHtml(h.scan_type || 'scan')}</div>
+      <div class="hdetail-verdict-row">
+        <span class="verdict-pill verdict-pill--${verdict} verdict-pill--lg">${verdict}</span>
+        <span class="hdetail-count">${toxCount} toxicant${toxCount !== 1 ? 's' : ''} detected</span>
+      </div>
+      ${toxCount > 0 ? `
+        <div class="hdetail-section-label">Detected Toxicants</div>
+        <div class="hdetail-tox-list">${toxList}</div>
+      ` : '<div class="hdetail-clean">No concerning toxicants found.</div>'}
+      <div class="hdetail-papers">Based on ${h.paper_count ?? 0} research papers</div>
+    </div>`;
+
+  showScreen('screen-history-detail');
 }
 
 // ── OCR photo flow ──────────────────────────────────────────────────────────
@@ -1232,6 +1348,7 @@ _supabase.auth.onAuthStateChange(async (event, session) => {
     _session = null;
     showScreen('login');
     document.getElementById('logout-btn').style.display = 'none';
+    document.getElementById('history-btn').style.display = 'none';
   }
 });
 

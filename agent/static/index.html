@@ -8,12 +8,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css?v=9" />
+  <link rel="stylesheet" href="/static/css/style.css?v=10" />
   <!-- Supabase JS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"
           integrity="sha384-2zrRDgDHSYB/GN3nFW3fsZXoxEhKIr3N2h63Tc6DEOB9JJdFIu8xMJT2Cph/gBil"
           crossorigin="anonymous"></script>
-  <script src="/static/js/config.js?v=9"></script>
+  <script src="/static/js/config.js?v=10"></script>
 </head>
 <body>
 <div class="app">
@@ -45,6 +45,15 @@
         <circle cx="4" cy="6" r="2" fill="currentColor" stroke="none"/>
         <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/>
         <circle cx="8" cy="18" r="2" fill="currentColor" stroke="none"/>
+      </svg>
+    </button>
+    <button id="history-btn" onclick="showScreen('screen-history'); loadHistoryScreen();" aria-label="Scan history" title="History"
+            style="display:none;background:rgba(45,212,191,0.13);border:1.5px solid rgba(45,212,191,0.35);color:var(--accent);cursor:pointer;padding:6px 8px;align-items:center;touch-action:manipulation;border-radius:8px;transition:background 0.15s,border-color 0.15s;margin-left:6px;"
+            onmouseover="this.style.background='rgba(45,212,191,0.22)';this.style.borderColor='rgba(45,212,191,0.6)'"
+            onmouseout="this.style.background='rgba(45,212,191,0.13)';this.style.borderColor='rgba(45,212,191,0.35)'"
+            onfocus="this.style.background='rgba(45,212,191,0.22)'" onblur="this.style.background='rgba(45,212,191,0.13)'">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
       </svg>
     </button>
     <button id="logout-btn" onclick="handleLogout()" aria-label="Sign out"
@@ -364,6 +373,70 @@
     </div>
   </div>
 
+  <!-- ── Screen: History ── -->
+  <div class="screen" id="screen-history">
+
+    <div class="results-header">
+      <button class="back-btn" onclick="showScreen('home')" aria-label="Go back to home">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+        Back
+      </button>
+      <div class="product-info">
+        <h2>Scan History</h2>
+        <p>Your last 50 scans</p>
+      </div>
+    </div>
+
+    <div style="padding: 0 16px 16px;">
+
+      <!-- Filter chips -->
+      <div class="history-filters" id="history-filters">
+        <button class="hfilter active" data-verdict="all"        onclick="filterHistory(this)">All</button>
+        <button class="hfilter"        data-verdict="concerning" onclick="filterHistory(this)">Concerning</button>
+        <button class="hfilter"        data-verdict="caution"    onclick="filterHistory(this)">Caution</button>
+        <button class="hfilter"        data-verdict="clean"      onclick="filterHistory(this)">Clean</button>
+      </div>
+
+      <!-- Table header -->
+      <div class="htable-head">
+        <span class="htcol htcol-date">Date</span>
+        <span class="htcol htcol-name">Product</span>
+        <span class="htcol htcol-verdict">Verdict</span>
+        <span class="htcol htcol-count">#</span>
+      </div>
+
+      <!-- Rows injected by JS -->
+      <div id="history-rows"></div>
+
+      <!-- States -->
+      <div id="history-loading" class="history-state">Loading…</div>
+      <div id="history-empty"   class="history-state" style="display:none;">No scans yet — go analyse a product!</div>
+
+    </div>
+  </div>
+
+  <!-- ── Screen: History Detail ── -->
+  <div class="screen" id="screen-history-detail">
+
+    <div class="results-header">
+      <button class="back-btn" onclick="showScreen('screen-history')" aria-label="Back to history">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+        History
+      </button>
+      <div class="product-info">
+        <h2>Scan Detail</h2>
+        <p></p>
+      </div>
+    </div>
+
+    <div style="padding: 0 16px 24px;" id="history-detail-body"></div>
+
+  </div>
+
   <!-- ── Screen: Watchlist ── -->
   <div class="screen" id="screen-watchlist">
     <div class="results-header">
@@ -415,6 +488,6 @@
 <!-- Toast notification -->
 <div id="toast"></div>
 
-<script src="/static/js/app.js?v=9"></script>
+<script src="/static/js/app.js?v=10"></script>
 </body>
 </html>
