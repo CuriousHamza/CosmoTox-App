@@ -1221,6 +1221,11 @@
   .alt-name { font-size: 0.84rem; font-weight: 600; color: var(--text); line-height: 1.35; margin-bottom: 5px; word-break: break-word; }
   .alt-avoids-row { display: flex; flex-wrap: wrap; gap: 4px; }
   .alt-avoids-tag { font-size: 0.63rem; font-weight: 700; padding: 2px 7px; border-radius: 10px; background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.2); color: var(--green); white-space: nowrap; }
+  .alt-comparison { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; margin: 5px 0 4px; font-size: 0.71rem; line-height: 1; }
+  .alt-comp-safe  { font-weight: 700; color: var(--green); }
+  .alt-comp-sep   { color: var(--text-muted); }
+  .alt-comp-user  { font-weight: 600; color: var(--amber); }
+  .alt-comp-pct   { margin-left: 3px; padding: 1px 6px; border-radius: 8px; background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.2); font-weight: 700; color: var(--green); font-size: 0.67rem; }
   .alt-actions { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; }
   .alt-buy-btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 10px; border-radius: 7px; font-family: 'Outfit', sans-serif; font-size: 0.72rem; font-weight: 700; text-decoration: none; white-space: nowrap; min-height: 34px; transition: background 0.15s, border-color 0.15s; }
   .alt-buy-btn:active { transform: scale(0.96); }

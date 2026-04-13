@@ -568,6 +568,7 @@ function renderAlternatives(alternatives, detected) {
     coal_tar: 'Coal Tar', triclosan: 'Triclosan', dioxane: '1,4-Dioxane',
   };
   const detectedKeys = new Set((detected || []).map(t => t.toxicant_key));
+  const userCount = (detected || []).length;
 
   const itemsHtml = alternatives.map(alt => {
     const relevantAvoids = (alt.avoids || []).filter(k => detectedKeys.has(k));
@@ -579,11 +580,23 @@ function renderAlternatives(alternatives, detected) {
       ? `<a class="alt-buy-btn alt-buy-amazon" href="${escHtml(alt.amazon_url)}" target="_blank" rel="noopener noreferrer" aria-label="Buy ${escHtml(alt.brand)} ${escHtml(alt.name)} on Amazon">${externalIcon}Amazon</a>` : '';
     const flipkartBtn = alt.flipkart_url
       ? `<a class="alt-buy-btn alt-buy-flipkart" href="${escHtml(alt.flipkart_url)}" target="_blank" rel="noopener noreferrer" aria-label="Buy ${escHtml(alt.brand)} ${escHtml(alt.name)} on Flipkart">${externalIcon}Flipkart</a>` : '';
+    const altCount = alt.toxicant_count || 0;
+    const reduction = userCount > 0
+      ? Math.round(((userCount - altCount) / userCount) * 100)
+      : 0;
+    const comparisonHtml = userCount > 0 ? `
+      <div class="alt-comparison">
+        <span class="alt-comp-safe">${altCount} toxicants</span>
+        <span class="alt-comp-sep">vs</span>
+        <span class="alt-comp-user">${userCount} in yours</span>
+        <span class="alt-comp-pct">${reduction}% cleaner</span>
+      </div>` : '';
     return `
       <div class="alternative-item">
         <div class="alt-info">
           <div class="alt-brand">${escHtml(alt.brand)}</div>
           <div class="alt-name">${escHtml(alt.name)}</div>
+          ${comparisonHtml}
           ${relevantAvoids.length > 0 ? `<div class="alt-avoids-row">${avoidTags}</div>` : ''}
         </div>
         <div class="alt-actions">${amazonBtn}${flipkartBtn}</div>
@@ -598,7 +611,7 @@ function renderAlternatives(alternatives, detected) {
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
         <span>Safer Alternatives</span>
       </div>
-      <p class="alternatives-sub">Engine-verified products that avoid the flagged ingredient${detectedKeys.size === 1 ? '' : 's'} above</p>
+      <p class="alternatives-sub">Engine-verified with 0 toxicants — safer alternatives to consider</p>
       <div class="alternatives-list">${itemsHtml}</div>
     </div>`;
   altDiv.appendChild(card);
