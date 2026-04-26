@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css?v=11" />
+  <link rel="stylesheet" href="/static/css/style.css?v=12" />
   <!-- Supabase JS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"
           integrity="sha384-2zrRDgDHSYB/GN3nFW3fsZXoxEhKIr3N2h63Tc6DEOB9JJdFIu8xMJT2Cph/gBil"
@@ -133,6 +133,34 @@
         />
       </div>
 
+      <div class="skin-type-wrap">
+        <label class="section-label">
+          Your skin type <span class="label-optional">(personalises your results)</span>
+        </label>
+        <div class="skin-type-chips" id="skin-type-chips" role="group" aria-label="Select your skin type">
+          <button class="skin-chip" data-type="oily" onclick="selectSkinType(this)" type="button">
+            <!-- Droplet icon -->
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2C6 10 4 14 4 16a8 8 0 0 0 16 0c0-2-2-6-8-14z"/></svg>
+            Oily
+          </button>
+          <button class="skin-chip" data-type="dry" onclick="selectSkinType(this)" type="button">
+            <!-- Sun icon -->
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            Dry
+          </button>
+          <button class="skin-chip" data-type="sensitive" onclick="selectSkinType(this)" type="button">
+            <!-- Shield icon -->
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Sensitive
+          </button>
+          <button class="skin-chip" data-type="combination" onclick="selectSkinType(this)" type="button">
+            <!-- Sliders icon -->
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+            Combination
+          </button>
+        </div>
+      </div>
+
       <div class="product-type-wrap">
         <label class="section-label">
           Product type <span class="label-optional">(auto-detected)</span>
@@ -150,18 +178,6 @@
           <button class="type-chip" data-type="baby_product"        onclick="selectProductType(this)" type="button">Baby Product</button>
         </div>
         <p class="product-type-hint">AI will detect the type automatically — or tap a chip to override</p>
-      </div>
-
-      <div class="skin-type-wrap">
-        <label class="section-label">
-          Your skin type <span class="label-optional">(personalises results)</span>
-        </label>
-        <div class="skin-type-chips" id="skin-type-chips" role="group" aria-label="Select your skin type">
-          <button class="skin-chip" data-type="oily"        onclick="selectSkinType(this)" type="button">Oily</button>
-          <button class="skin-chip" data-type="dry"         onclick="selectSkinType(this)" type="button">Dry</button>
-          <button class="skin-chip" data-type="sensitive"   onclick="selectSkinType(this)" type="button">Sensitive</button>
-          <button class="skin-chip" data-type="combination" onclick="selectSkinType(this)" type="button">Combination</button>
-        </div>
       </div>
 
       <div class="analyze-wrap">
@@ -525,6 +541,6 @@
 <!-- Toast notification -->
 <div id="toast"></div>
 
-<script src="/static/js/app.js?v=11"></script>
+<script src="/static/js/app.js?v=12"></script>
 </body>
 </html>
